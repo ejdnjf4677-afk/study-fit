@@ -9,6 +9,8 @@ const SettingsScreen = ({ onLogout }) => {
   const [todos, setTodos] = useState(getTodos());
   const [newSubject, setNewSubject] = useState('');
   const [newTodo, setNewTodo] = useState('');
+  const [confirmModal, setConfirmModal] = useState(null); // { type: 'logout' | 'reset', message }
+  const [infoModal, setInfoModal] = useState(null);       // { title, message }
 
   const handleGoalChange = (e) => {
     const newGoal = parseInt(e.target.value);
@@ -39,7 +41,16 @@ const SettingsScreen = ({ onLogout }) => {
   };
 
   const handleReset = () => {
-    if (window.confirm('정말 모든 데이터를 초기화하시겠습니까?\n이 작업은 되돌릴 수 없습니다.')) {
+    setConfirmModal({ type: 'reset', message: '정말 모든 데이터를 초기화하시겠습니까?\n이 작업은 되돌릴 수 없습니다.' });
+  };
+
+  const handleConfirm = () => {
+    if (confirmModal?.type === 'logout') {
+      logoutUser();
+      setConfirmModal(null);
+      if (onLogout) onLogout();
+    } else if (confirmModal?.type === 'reset') {
+      setConfirmModal(null);
       clearAllData();
     }
   };
@@ -67,7 +78,7 @@ const SettingsScreen = ({ onLogout }) => {
   };
 
   return (
-    <div className="screen-container" style={{ paddingBottom: '100px' }}>
+    <div className="screen-container" style={{ paddingBottom: '140px' }}>
       <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '24px' }}>설정</h2>
 
       {/* 목표 설정 */}
@@ -250,12 +261,7 @@ const SettingsScreen = ({ onLogout }) => {
 
       {/* 기타 설정 */}
       <div className="card" style={{ padding: '8px 0' }}>
-        <div onClick={() => {
-          if (window.confirm('정말 로그아웃 하시겠습니까?')) {
-            logoutUser();
-            if (onLogout) onLogout();
-          }
-        }} style={{ display: 'flex', alignItems: 'center', padding: '16px', cursor: 'pointer' }}>
+        <div onClick={() => setConfirmModal({ type: 'logout', message: '정말 로그아웃 하시겠습니까?' })} style={{ display: 'flex', alignItems: 'center', padding: '16px', cursor: 'pointer' }}>
           <LogOut size={20} color="var(--primary-color)" style={{ marginRight: '12px' }} />
           <span style={{ flex: 1, fontWeight: '600' }}>로그아웃</span>
           <ChevronRight size={20} color="#C7C7CC" />
@@ -267,7 +273,7 @@ const SettingsScreen = ({ onLogout }) => {
           <ChevronRight size={20} color="#C7C7CC" />
         </div>
         <div style={{ height: '1px', background: '#F2F2F7', margin: '0 16px' }} />
-        <div onClick={() => alert('StudyFit v1.0.0 (Beta)\nDeveloped by Team AntiGravity')} style={{ display: 'flex', alignItems: 'center', padding: '16px', cursor: 'pointer' }}>
+        <div onClick={() => setInfoModal({ title: '앱 정보', message: `StudyFit v1.0.0 (Beta)\nDeveloped by Team AntiGravity` })} style={{ display: 'flex', alignItems: 'center', padding: '16px', cursor: 'pointer' }}>
           <Info size={20} color="#8E8E93" style={{ marginRight: '12px' }} />
           <span style={{ flex: 1 }}>앱 정보</span>
           <span style={{ fontSize: '13px', color: '#C7C7CC', marginRight: '8px' }}>v1.0.0</span>
@@ -278,6 +284,95 @@ const SettingsScreen = ({ onLogout }) => {
       <div style={{ textAlign: 'center', marginTop: '24px', fontSize: '12px', color: '#C7C7CC' }}>
         © 2026 StudyFit. All rights reserved.
       </div>
+
+      {/* 인앱 확인 모달 */}
+      {confirmModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999, padding: '24px'
+        }}>
+          <div style={{
+            background: 'var(--secondary-bg)',
+            borderRadius: '24px',
+            padding: '28px 24px',
+            width: '100%',
+            maxWidth: '320px',
+            boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
+            animation: 'slideUp 0.3s cubic-bezier(0.16,1,0.3,1)'
+          }}>
+            <h3 style={{ fontSize: '18px', fontWeight: '800', marginBottom: '12px', color: 'var(--text-primary)' }}>
+              {confirmModal.type === 'logout' ? '로그아웃' : '데이터 초기화'}
+            </h3>
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: '1.6', whiteSpace: 'pre-line' }}>
+              {confirmModal.message}
+            </p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={() => setConfirmModal(null)}
+                style={{
+                  flex: 1, padding: '14px', borderRadius: '14px',
+                  border: '1.5px solid var(--border-color, #E2E8F0)',
+                  background: 'var(--tertiary-bg)',
+                  color: 'var(--text-secondary)',
+                  fontSize: '15px', fontWeight: '600', cursor: 'pointer'
+                }}
+              >
+                취소
+              </button>
+              <button
+                onClick={handleConfirm}
+                style={{
+                  flex: 1, padding: '14px', borderRadius: '14px',
+                  border: 'none',
+                  background: confirmModal.type === 'reset' ? '#FF3B30' : 'var(--primary-color)',
+                  color: 'white',
+                  fontSize: '15px', fontWeight: '700', cursor: 'pointer'
+                }}
+              >
+                {confirmModal.type === 'logout' ? '로그아웃' : '초기화'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 인앱 알림 모달 (앱 정보) */}
+      {infoModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999, padding: '24px'
+        }}>
+          <div style={{
+            background: 'var(--secondary-bg)',
+            borderRadius: '24px',
+            padding: '28px 24px',
+            width: '100%', maxWidth: '320px',
+            boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
+            animation: 'slideUp 0.3s cubic-bezier(0.16,1,0.3,1)'
+          }}>
+            <h3 style={{ fontSize: '18px', fontWeight: '800', marginBottom: '12px', color: 'var(--text-primary)' }}>
+              {infoModal.title}
+            </h3>
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: '1.8', whiteSpace: 'pre-line' }}>
+              {infoModal.message}
+            </p>
+            <button
+              onClick={() => setInfoModal(null)}
+              style={{
+                width: '100%', padding: '14px', borderRadius: '14px',
+                border: 'none', background: 'var(--primary-color)',
+                color: 'white', fontSize: '15px', fontWeight: '700', cursor: 'pointer'
+              }}
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

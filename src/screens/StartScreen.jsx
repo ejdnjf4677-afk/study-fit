@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Clock, Heart, AlertCircle, Save, User, Lock, LogIn, UserPlus, Smile } from 'lucide-react';
 import { loginUser, registerUser } from '../utils/storage';
+import lightIcon from '../스터디 핏 아이콘 (밝은버전).png';
+import darkIcon from '../스터디 핏 아이콘 (어두운버전).png';
 
 const StartScreen = ({ onStart }) => {
   const [mode, setMode] = useState('login'); // 'login' | 'signup'
@@ -10,6 +12,22 @@ const StartScreen = ({ onStart }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [isDarkMode, setIsDarkMode] = useState(() => document.body.classList.contains('dark'));
+
+  useEffect(() => {
+    setIsDarkMode(document.body.classList.contains('dark'));
+
+    const observer = new MutationObserver(() => {
+      setIsDarkMode(document.body.classList.contains('dark'));
+    });
+
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -75,13 +93,12 @@ const StartScreen = ({ onStart }) => {
   return (
     <div className="screen-container animate-fade-in" style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '24px' }}>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', width: '100%', maxWidth: '360px', margin: '0 auto' }}>
-        
+
         {/* Logo and Title */}
         <div style={{ marginBottom: '28px' }}>
           <div style={{
             width: '80px',
             height: '80px',
-            backgroundColor: 'var(--primary-color)',
             borderRadius: '24px',
             marginBottom: '16px',
             display: 'flex',
@@ -89,9 +106,14 @@ const StartScreen = ({ onStart }) => {
             justifyContent: 'center',
             boxShadow: '0 10px 20px rgba(0, 122, 255, 0.2)',
             marginLeft: 'auto',
-            marginRight: 'auto'
+            marginRight: 'auto',
+            overflow: 'hidden'
           }}>
-            <span style={{ color: 'white', fontSize: '24px', fontWeight: 'bold' }}>핏</span>
+            <img
+              src={isDarkMode ? darkIcon : lightIcon}
+              alt="스터디핏 아이콘"
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
           </div>
           <h1 style={{ fontSize: '28px', fontWeight: '800', marginBottom: '6px', letterSpacing: '-0.5px' }}>스터디핏</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>나에게 맞는 공부 습관 찾기</p>

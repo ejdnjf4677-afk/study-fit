@@ -197,14 +197,14 @@ const StatsScreen = () => {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               style={{
-                background: activeTab === tab.id ? 'white' : 'transparent',
+                background: activeTab === tab.id ? 'var(--secondary-bg)' : 'transparent',
                 border: 'none',
                 padding: '6px 14px',
                 borderRadius: '8px',
                 fontSize: '13px',
                 fontWeight: activeTab === tab.id ? '700' : '500',
                 color: activeTab === tab.id ? 'var(--text-primary)' : 'var(--text-secondary)',
-                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,0,0,0.05)' : 'none',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
                 cursor: 'pointer',
                 transition: 'all 0.2s'
               }}

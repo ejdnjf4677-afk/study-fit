@@ -8,6 +8,8 @@ const RecordsScreen = () => {
   const [failures, setFailures] = useState([]);
   const [activeTab, setActiveTab] = useState('study');
   const [expandedDate, setExpandedDate] = useState(new Date().toLocaleDateString());
+  const [deleteModal, setDeleteModal] = useState(null); // { type, id }
+  const [infoModal, setInfoModal] = useState(null);   // { message }
 
   // Emotion Form State
   const [emotion, setEmotion] = useState('😊');
@@ -36,15 +38,19 @@ const RecordsScreen = () => {
   };
 
   const handleDelete = (type, id) => {
-    if (window.confirm('기록을 삭제하시겠습니까?')) {
-      const keyMap = {
-        study: 'study_records',
-        emotion: 'emotion_logs',
-        failure: 'failure_logs'
-      };
-      deleteRecord(keyMap[type], id);
-      loadAllData();
-    }
+    setDeleteModal({ type, id });
+  };
+
+  const confirmDelete = () => {
+    if (!deleteModal) return;
+    const keyMap = {
+      study: 'study_records',
+      emotion: 'emotion_logs',
+      failure: 'failure_logs'
+    };
+    deleteRecord(keyMap[deleteModal.type], deleteModal.id);
+    setDeleteModal(null);
+    loadAllData();
   };
 
   const handleSaveEmotion = () => {
@@ -56,7 +62,7 @@ const RecordsScreen = () => {
       subject: '자율 기록',
       duration: 0
     });
-    alert('감정 기록이 저장되었습니다.');
+    setInfoModal({ message: '감정 기록이 저장되었습니다.' });
     setEmotionNote('');
     loadAllData();
   };
@@ -70,7 +76,7 @@ const RecordsScreen = () => {
       targetMinutes: 0,
       actualMinutes: 0
     });
-    alert('분석 결과가 저장되었습니다.');
+    setInfoModal({ message: '분석 결과가 저장되었습니다.' });
     setFailureDetail('');
     setFailureImprovement('');
     loadAllData();
@@ -467,6 +473,97 @@ const RecordsScreen = () => {
         {activeTab === 'emotion' && renderEmotionTab()}
         {activeTab === 'failure' && renderFailureTab()}
       </div>
+
+      {/* 인앱 삭제 확인 모달 */}
+      {deleteModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999, padding: '24px'
+        }}>
+          <div style={{
+            background: 'var(--secondary-bg)',
+            borderRadius: '24px',
+            padding: '28px 24px',
+            width: '100%',
+            maxWidth: '320px',
+            boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
+            animation: 'slideUp 0.3s cubic-bezier(0.16,1,0.3,1)'
+          }}>
+            <h3 style={{ fontSize: '18px', fontWeight: '800', marginBottom: '12px', color: 'var(--text-primary)' }}>
+              기록 삭제
+            </h3>
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: '1.6' }}>
+              이 기록을 삭제하시겠습니까?{`\n`}삭제 후 복구할 수 없습니다.
+            </p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={() => setDeleteModal(null)}
+                style={{
+                  flex: 1, padding: '14px', borderRadius: '14px',
+                  border: '1.5px solid var(--tertiary-bg)',
+                  background: 'var(--tertiary-bg)',
+                  color: 'var(--text-secondary)',
+                  fontSize: '15px', fontWeight: '600', cursor: 'pointer'
+                }}
+              >
+                취소
+              </button>
+              <button
+                onClick={confirmDelete}
+                style={{
+                  flex: 1, padding: '14px', borderRadius: '14px',
+                  border: 'none',
+                  background: '#FF3B30',
+                  color: 'white',
+                  fontSize: '15px', fontWeight: '700', cursor: 'pointer'
+                }}
+              >
+                삭제
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {infoModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999, padding: '24px'
+        }}>
+          <div style={{
+            background: 'var(--secondary-bg)',
+            borderRadius: '24px',
+            padding: '28px 24px',
+            width: '100%',
+            maxWidth: '320px',
+            boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
+            animation: 'slideUp 0.3s cubic-bezier(0.16,1,0.3,1)'
+          }}>
+            <h3 style={{ fontSize: '18px', fontWeight: '800', marginBottom: '12px', color: 'var(--text-primary)' }}>
+              ✅ 저장 완료
+            </h3>
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: '1.6' }}>
+              {infoModal.message}
+            </p>
+            <button
+              onClick={() => setInfoModal(null)}
+              style={{
+                width: '100%', padding: '14px', borderRadius: '14px',
+                border: 'none',
+                background: 'var(--primary-color)',
+                color: 'white',
+                fontSize: '15px', fontWeight: '700', cursor: 'pointer'
+              }}
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
