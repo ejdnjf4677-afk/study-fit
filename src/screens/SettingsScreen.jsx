@@ -110,7 +110,8 @@ const SettingsScreen = ({ onLogout }) => {
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
-              background: '#F2F2F7',
+              background: 'var(--tertiary-bg)',
+              color: 'var(--text-primary)',
               padding: '4px 10px',
               borderRadius: '20px',
               fontSize: '13px'

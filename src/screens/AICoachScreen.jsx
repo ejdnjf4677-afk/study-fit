@@ -28,14 +28,14 @@ const AICoachScreen = () => {
     const todayRecords = records.filter(r => new Date(r.timestamp).toLocaleDateString() === today);
     const todayMins = todayRecords.reduce((acc, r) => acc + r.durationMinutes, 0);
     const avgPauses = todayRecords.length > 0 ? todayRecords.reduce((acc, r) => acc + r.pauseCount, 0) / todayRecords.length : 0;
-    
+
     // Find most studied subject
     const subjectMins = {};
     records.forEach(r => { subjectMins[r.subject] = (subjectMins[r.subject] || 0) + r.durationMinutes; });
-    const topSubject = Object.entries(subjectMins).sort((a,b)=>b[1]-a[1])[0]?.[0] || '없음';
+    const topSubject = Object.entries(subjectMins).sort((a, b) => b[1] - a[1])[0]?.[0] || '없음';
 
     const input = userInput.toLowerCase();
-    
+
     // 1. 인사 및 격려
     if (input.includes('안녕') || input.includes('반가워')) {
       return `안녕하세요! 오늘 하루도 목표 ${settings.dailyGoal}분 달성을 향해 화이팅입니다. 어떤 부분이 궁금하신가요?`;
@@ -78,7 +78,7 @@ const AICoachScreen = () => {
       if (points >= target) return `현재 ${points.toLocaleString()}P를 획득하셨습니다! 보상 상점에서 원하시는 기프티콘으로 당장 교환하실 수 있어요. 수고 많으셨습니다.`;
       return `현재 ${points.toLocaleString()}P를 보유하고 계십니다. 스타벅스 커피 기프티콘(15,000P)까지 ${(target - points).toLocaleString()}P 남았습니다! 매일 기록을 성실히 남겨 포인트를 모아보세요.`;
     }
-    
+
     if (input.includes('과목') || input.includes('어떤 거')) {
       if (topSubject !== '없음') return `기록에 따르면 '${topSubject}' 과목에 가장 많은 시간을 투자하고 계시네요. 밸런스를 위해 평소 덜 하던 과목을 오늘 도전해보는 건 어떨까요?`;
     }
@@ -87,9 +87,9 @@ const AICoachScreen = () => {
     if (todayMins === 0) {
       return "아직 오늘의 공부 기록이 없습니다. 완벽하게 하려는 마음을 내려놓고 딱 10분만 일단 시작해보는 건 어떨까요? 시작이 반입니다!";
     }
-    const score = calculateConcentrationScore(Math.min(100, (todayMins/settings.dailyGoal)*100), avgPauses);
+    const score = calculateConcentrationScore(Math.min(100, (todayMins / settings.dailyGoal) * 100), avgPauses);
     if (score > 85) return `분석 결과 오늘 집중 점수가 ${score}점으로 상당히 높습니다! 이 좋은 흐름을 유지해서, 평소에 미루던 가장 까다로운 과목을 지금 바로 공략해 보세요.`;
-    return `오늘 하루 ${todayMins}분 동안 정말 열심히 하셨습니다. 목표 대비 달성률은 ${(todayMins/settings.dailyGoal*100).toFixed(1)}% 입니다. 조금만 더 힘내서 목표를 채워볼까요?`;
+    return `오늘 하루 ${todayMins}분 동안 정말 열심히 하셨습니다. 목표 대비 달성률은 ${(todayMins / settings.dailyGoal * 100).toFixed(1)}% 입니다. 조금만 더 힘내서 목표를 채워볼까요?`;
   };
 
   const handleSubmit = (e) => {
@@ -136,15 +136,7 @@ const AICoachScreen = () => {
       </div>
 
       {/* 채팅 영역 */}
-      <div className="card" style={{ 
-        flex: 1, 
-        display: 'flex', 
-        flexDirection: 'column', 
-        padding: '20px',
-        margin: 0,
-        marginBottom: '16px',
-        overflow: 'hidden'
-      }}>
+      <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '20px', margin: 0, marginBottom: '16px', overflow: 'hidden' }}>
         <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', paddingRight: '4px' }} className="hide-scrollbar">
           {chat.length === 0 && (
             <div style={{ textAlign: 'center', margin: 'auto 0', padding: '20px' }}>
@@ -152,19 +144,18 @@ const AICoachScreen = () => {
                 <Bot size={32} color="var(--primary-color)" />
               </div>
               <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '8px', color: 'var(--text-primary)' }}>무엇이든 물어보세요!</h3>
-              <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: '1.5' }}>지금까지의 기록을 분석해서<br/>가장 효율적인 학습법을 제안해드릴게요.</p>
-              
+              <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: '1.5' }}>지금까지의 기록을 분석해서<br />가장 효율적인 학습법을 제안해드릴게요.</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {['내 집중도는 어때?', '왜 자꾸 쉴까?', '피곤할 땐 어떡해?'].map(q => (
-                  <button 
-                    key={q} 
+                  <button
+                    key={q}
                     onClick={() => { setQuestion(q); }}
-                    style={{ 
-                      fontSize: '14px', 
-                      padding: '12px 16px', 
-                      borderRadius: '16px', 
-                      border: '1px solid var(--primary-light)', 
-                      background: 'white', 
+                    style={{
+                      fontSize: '14px',
+                      padding: '12px 16px',
+                      borderRadius: '16px',
+                      border: '1px solid var(--primary-light)',
+                      background: 'white',
                       color: 'var(--primary-color)',
                       fontWeight: '600',
                       cursor: 'pointer',
@@ -178,31 +169,15 @@ const AICoachScreen = () => {
               </div>
             </div>
           )}
-          
+
           {chat.map((msg, i) => (
-            <div key={i} style={{ 
-              display: 'flex', 
-              justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
-              alignItems: 'flex-start',
-              gap: '12px',
-              animation: 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
-            }}>
+            <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', alignItems: 'flex-start', gap: '12px', animation: 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
               {msg.role === 'ai' && (
                 <div style={{ width: '36px', height: '36px', background: 'linear-gradient(135deg, #2F80ED, #56CCF2)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px rgba(47,128,237,0.2)' }}>
                   <Bot size={20} color="white" />
                 </div>
               )}
-              <div style={{ 
-                maxWidth: '75%',
-                padding: '14px 18px',
-                borderRadius: msg.role === 'user' ? '20px 20px 4px 20px' : '4px 20px 20px 20px',
-                background: msg.role === 'user' ? 'var(--primary-color)' : 'var(--tertiary-bg)',
-                color: msg.role === 'user' ? 'white' : 'var(--text-primary)',
-                fontSize: '15px',
-                lineHeight: '1.6',
-                fontWeight: msg.role === 'user' ? '500' : '500',
-                boxShadow: msg.role === 'user' ? '0 4px 12px rgba(47,128,237,0.15)' : 'none'
-              }}>
+              <div style={{ maxWidth: '75%', padding: '14px 18px', borderRadius: msg.role === 'user' ? '20px 20px 4px 20px' : '4px 20px 20px 20px', background: msg.role === 'user' ? 'var(--primary-color)' : 'var(--tertiary-bg)', color: msg.role === 'user' ? 'white' : 'var(--text-primary)', fontSize: '15px', lineHeight: '1.6', fontWeight: msg.role === 'user' ? '500' : '500', boxShadow: msg.role === 'user' ? '0 4px 12px rgba(47,128,237,0.15)' : 'none' }}>
                 {msg.text}
               </div>
             </div>
@@ -212,14 +187,7 @@ const AICoachScreen = () => {
               <div style={{ width: '36px', height: '36px', background: 'linear-gradient(135deg, #2F80ED, #56CCF2)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Bot size={20} color="white" />
               </div>
-              <div style={{ 
-                padding: '14px 18px', 
-                background: 'var(--tertiary-bg)', 
-                borderRadius: '4px 20px 20px 20px', 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '4px' 
-              }}>
+              <div style={{ padding: '14px 18px', background: 'var(--tertiary-bg)', borderRadius: '4px 20px 20px 20px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <div className="typing-dot"></div>
                 <div className="typing-dot" style={{ animationDelay: '0.2s' }}></div>
                 <div className="typing-dot" style={{ animationDelay: '0.4s' }}></div>
@@ -231,16 +199,16 @@ const AICoachScreen = () => {
       </div>
 
       <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '10px' }}>
-        <input 
-          type="text" 
+        <input
+          type="text"
           placeholder="코치에게 질문하기..."
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           disabled={loading}
-          style={{ 
-            flex: 1, 
-            padding: '16px 20px', 
-            borderRadius: '20px', 
+          style={{
+            flex: 1,
+            padding: '16px 20px',
+            borderRadius: '20px',
             border: '1px solid #E2E8F0',
             fontSize: '15px',
             outline: 'none',
@@ -252,10 +220,10 @@ const AICoachScreen = () => {
           onFocus={(e) => e.target.style.borderColor = 'var(--primary-color)'}
           onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
         />
-        <button 
+        <button
           type="submit"
           disabled={loading || !question.trim()}
-          style={{ 
+          style={{
             width: '54px',
             height: '54px',
             borderRadius: '20px',
@@ -273,7 +241,7 @@ const AICoachScreen = () => {
           <Send size={22} />
         </button>
       </form>
-      
+
       <style>{`
         .typing-dot {
           width: 6px;
