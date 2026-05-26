@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Gift, Coins, CreditCard, PlayCircle } from 'lucide-react';
+import { Gift, Coins, CreditCard, PlayCircle, Sparkles, Crown } from 'lucide-react';
 import { getUserPoints, getLastEarnedPoints, addPoints, saveData } from '../utils/storage';
 
 const rewards = [
-  { name: '스타벅스 아메리카노 Tall', cost: 15000 },
-  { name: 'GS25 모바일 상품권 5,000원', cost: 20000 },
-  { name: '배달의민족 상품권 10,000원', cost: 35000 },
-  { name: '문화상품권 10,000원', cost: 40000 },
-  { name: '자기계발 도서 교환권', cost: 45000 },
+  { name: '스타벅스 아메리카노 Tall', cost: 15000, color: '#00704A' },
+  { name: 'GS25 모바일 상품권 5,000원', cost: 20000, color: '#00D4EA' },
+  { name: '배달의민족 상품권 10,000원', cost: 35000, color: '#2AC1BC' },
+  { name: '문화상품권 10,000원', cost: 40000, color: '#F2994A' },
 ];
 
 const RewardScreen = () => {
@@ -16,7 +15,6 @@ const RewardScreen = () => {
   const [adWatched, setAdWatched] = useState(false);
 
   useEffect(() => {
-    // Refresh points from storage in case they changed elsewhere
     setPoints(getUserPoints());
     setLastEarned(getLastEarnedPoints());
   }, []);
@@ -26,15 +24,11 @@ const RewardScreen = () => {
       alert('이미 광고 보상을 받았습니다.');
       return;
     }
-    if (lastEarned <= 0) {
-      alert('추가로 지급할 최근 포인트 기록이 없습니다.');
-      return;
-    }
     
-    addPoints(lastEarned);
+    addPoints(10);
     setPoints(getUserPoints());
     setAdWatched(true);
-    alert(`광고 시청 완료! 직전 획득한 ${lastEarned}P를 추가로 받았습니다.`);
+    alert(`광고 시청 완료! 10P를 획득했습니다.`);
   };
 
   const handlePremium = () => {
@@ -53,30 +47,34 @@ const RewardScreen = () => {
   };
 
   return (
-    <div className="screen-container">
-      <header style={{ marginBottom: '24px' }}>
-        <h2 style={{ fontSize: '24px', fontWeight: 'bold' }}>보상 상점</h2>
-        <p style={{ color: 'var(--text-secondary)' }}>열심히 공부한 당신, 보상을 누리세요!</p>
+    <div className="screen-container animate-fade-in" style={{ paddingBottom: '120px' }}>
+      <header style={{ paddingTop: '16px', marginBottom: '24px' }}>
+        <h2 style={{ fontSize: '24px', fontWeight: '800', letterSpacing: '-0.5px', marginBottom: '6px' }}>보상 상점</h2>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '15px', fontWeight: '500' }}>열심히 공부한 당신, 보상을 누리세요!</p>
       </header>
 
       <div className="card" style={{ 
-        background: 'linear-gradient(135deg, #007AFF, #00C6FF)', 
+        background: 'linear-gradient(135deg, #2F80ED, #56CCF2)', 
         color: 'white', 
         border: 'none',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        padding: '24px',
-        marginBottom: '24px'
+        padding: '32px 24px',
+        marginBottom: '24px',
+        borderRadius: '24px',
+        boxShadow: '0 16px 32px rgba(47, 128, 237, 0.2)'
       }}>
-        <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px' }}>보유 포인트</div>
-        <div style={{ fontSize: '32px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Coins size={28} />
-          {points.toLocaleString()} P
+        <div style={{ background: 'rgba(255,255,255,0.2)', padding: '12px', borderRadius: '50%', marginBottom: '16px' }}>
+          <Sparkles size={28} color="white" />
+        </div>
+        <div style={{ fontSize: '15px', fontWeight: '600', opacity: 0.9, marginBottom: '8px' }}>나의 포인트</div>
+        <div style={{ fontSize: '40px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '10px', letterSpacing: '-1px' }}>
+          {points.toLocaleString()} <span style={{ fontSize: '24px', opacity: 0.9 }}>P</span>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '32px' }}>
         <button 
           className="btn-secondary" 
           onClick={handleAdWatch}
@@ -84,13 +82,16 @@ const RewardScreen = () => {
             display: 'flex', 
             flexDirection: 'column', 
             alignItems: 'center', 
-            padding: '16px', 
-            gap: '8px',
-            opacity: (adWatched || lastEarned <= 0) ? 0.6 : 1
+            padding: '20px 16px', 
+            gap: '12px',
+            opacity: (adWatched || lastEarned <= 0) ? 0.6 : 1,
+            background: 'var(--secondary-bg)',
+            border: '2px solid var(--tertiary-bg)',
+            boxShadow: 'var(--card-shadow)'
           }}
         >
-          <PlayCircle size={24} color="var(--primary-color)" />
-          <span style={{ fontSize: '12px', fontWeight: '600' }}>광고 보고 +{lastEarned}P</span>
+          <PlayCircle size={28} color="var(--primary-color)" />
+          <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)' }}>광고 시청 +10P</span>
         </button>
         <button 
           className="btn-primary" 
@@ -99,42 +100,50 @@ const RewardScreen = () => {
             display: 'flex', 
             flexDirection: 'column', 
             alignItems: 'center', 
-            padding: '16px', 
-            gap: '8px'
+            padding: '20px 16px', 
+            gap: '12px',
+            background: 'linear-gradient(135deg, #9B51E0, #BB6BD9)',
+            boxShadow: '0 8px 16px rgba(155, 81, 224, 0.25)'
           }}
         >
-          <CreditCard size={24} color="white" />
-          <span style={{ fontSize: '12px', fontWeight: '600' }}>프리미엄 구매</span>
+          <Crown size={28} color="white" />
+          <span style={{ fontSize: '14px', fontWeight: '700' }}>프리미엄 혜택</span>
         </button>
       </div>
 
-      <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '16px' }}>포인트 교환 상품</h3>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingBottom: '100px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+        <Gift size={20} color="var(--primary-color)" />
+        <h3 style={{ fontSize: '18px', fontWeight: '800', letterSpacing: '-0.5px', margin: 0 }}>상품 교환</h3>
+      </div>
+      
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         {rewards.map((r, i) => (
-          <div key={i} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '40px', height: '40px', background: '#F2F2F7', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Gift size={20} color="var(--primary-color)" />
+          <div key={i} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', margin: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ width: '48px', height: '48px', background: `${r.color}15`, borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Gift size={24} color={r.color} />
               </div>
               <div>
-                <div style={{ fontWeight: '600', fontSize: '14px' }}>{r.name}</div>
-                <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{r.cost.toLocaleString()} P</div>
+                <div style={{ fontWeight: '700', fontSize: '15px', color: 'var(--text-primary)', marginBottom: '4px' }}>{r.name}</div>
+                <div style={{ fontSize: '14px', color: 'var(--primary-color)', fontWeight: '800' }}>{r.cost.toLocaleString()} P</div>
               </div>
             </div>
             <button 
               onClick={() => claimReward(r)}
               style={{ 
-                padding: '8px 16px', 
-                borderRadius: '20px', 
+                padding: '10px 20px', 
+                borderRadius: '16px', 
                 border: 'none', 
-                background: points >= r.cost ? 'var(--primary-color)' : '#E5E5EA',
-                color: points >= r.cost ? 'white' : '#8E8E93',
-                fontSize: '12px',
-                fontWeight: 'bold',
-                cursor: points >= r.cost ? 'pointer' : 'default'
+                background: points >= r.cost ? 'var(--primary-color)' : 'var(--tertiary-bg)',
+                color: points >= r.cost ? 'white' : 'var(--text-tertiary)',
+                fontSize: '14px',
+                fontWeight: '700',
+                cursor: points >= r.cost ? 'pointer' : 'default',
+                transition: 'all 0.2s',
+                boxShadow: points >= r.cost ? '0 4px 12px rgba(47,128,237,0.2)' : 'none'
               }}
             >
-              교환하기
+              교환
             </button>
           </div>
         ))}

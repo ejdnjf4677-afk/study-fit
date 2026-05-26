@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import StartScreen from './screens/StartScreen';
 import HomeScreen from './screens/HomeScreen';
 import TimerScreen from './screens/TimerScreen';
@@ -10,14 +10,40 @@ import AICoachScreen from './screens/AICoachScreen';
 import EmotionScreen from './screens/EmotionScreen';
 import FailureScreen from './screens/FailureScreen';
 import BottomNav from './components/BottomNav';
+import { getCurrentUser } from './utils/storage';
 
 function App() {
   const [screen, setScreen] = useState('start');
   const [lastSession, setLastSession] = useState(null);
 
+  useEffect(() => {
+    try {
+      // Theme Check
+      const storedSettings = localStorage.getItem('app_settings');
+      if (storedSettings) {
+        const settings = JSON.parse(storedSettings);
+        if (settings.theme === 'dark') {
+          document.body.classList.add('dark');
+        } else {
+          document.body.classList.remove('dark');
+        }
+      }
+      
+      // Session Check
+      const user = getCurrentUser();
+      if (user) {
+        setScreen('home');
+      } else {
+        setScreen('start');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
   const handleTimerFinish = (sessionData) => {
     setLastSession(sessionData);
-    setScreen('emotion');
+    setScreen('home');
   };
 
   const renderScreen = () => {
@@ -28,10 +54,6 @@ function App() {
         return <HomeScreen onStartStudy={() => setScreen('timer')} />;
       case 'timer':
         return <TimerScreen onFinish={handleTimerFinish} onBack={() => setScreen('home')} />;
-      case 'emotion':
-        return <EmotionScreen lastSession={lastSession} onSave={() => setScreen('failure')} />;
-      case 'failure':
-        return <FailureScreen lastSession={lastSession} onSave={() => setScreen('home')} />;
       case 'records':
         return <RecordsScreen />;
       case 'stats':
@@ -41,7 +63,7 @@ function App() {
       case 'aicoach':
         return <AICoachScreen />;
       case 'settings':
-        return <SettingsScreen />;
+        return <SettingsScreen onLogout={() => setScreen('start')} />;
       default:
         return <HomeScreen onStartStudy={() => setScreen('timer')} />;
     }
@@ -50,12 +72,10 @@ function App() {
   return (
     <>
       {renderScreen()}
-      {screen !== 'start' && 
-       screen !== 'timer' && 
-       screen !== 'emotion' && 
-       screen !== 'failure' && (
-        <BottomNav setScreen={setScreen} activeScreen={screen} />
-      )}
+      {screen !== 'start' &&
+        screen !== 'timer' && (
+          <BottomNav setScreen={setScreen} activeScreen={screen} />
+        )}
     </>
   );
 }

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Bell, Target, BookOpen, Trash2, Info, RefreshCcw, ChevronRight, CheckCircle2, ListTodo } from 'lucide-react';
-import { getAppSettings, saveAppSettings, getSubjects, saveSubjects, getNotifications, saveNotifications, clearAllData, getTodos, saveTodos } from '../utils/storage';
+import { Bell, Target, BookOpen, Trash2, Info, RefreshCcw, ChevronRight, CheckCircle2, ListTodo, Moon, Tablet, LogOut } from 'lucide-react';
+import { getAppSettings, saveAppSettings, getSubjects, saveSubjects, getNotifications, saveNotifications, clearAllData, getTodos, saveTodos, logoutUser } from '../utils/storage';
 
-const SettingsScreen = () => {
+const SettingsScreen = ({ onLogout }) => {
   const [settings, setSettings] = useState(getAppSettings());
   const [subjects, setSubjects] = useState(getSubjects());
   const [notifications, setNotifications] = useState(getNotifications());
@@ -77,10 +77,10 @@ const SettingsScreen = () => {
           <h3 style={{ fontSize: '16px', fontWeight: 'bold' }}>하루 목표 시간</h3>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <input 
-            type="range" 
+          <input
+            type="range"
             min="30" max="600" step="30"
-            value={settings.dailyGoal} 
+            value={settings.dailyGoal}
             onChange={handleGoalChange}
             style={{ flex: 1, accentColor: 'var(--primary-color)' }}
           />
@@ -95,8 +95,8 @@ const SettingsScreen = () => {
           <h3 style={{ fontSize: '16px', fontWeight: 'bold' }}>과목 관리</h3>
         </div>
         <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-          <input 
-            type="text" 
+          <input
+            type="text"
             placeholder="새 과목 입력"
             value={newSubject}
             onChange={(e) => setNewSubject(e.target.value)}
@@ -106,12 +106,12 @@ const SettingsScreen = () => {
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
           {subjects.map(s => (
-            <div key={s} style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '4px', 
-              background: '#F2F2F7', 
-              padding: '4px 10px', 
+            <div key={s} style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              background: '#F2F2F7',
+              padding: '4px 10px',
               borderRadius: '20px',
               fontSize: '13px'
             }}>
@@ -129,8 +129,8 @@ const SettingsScreen = () => {
           <h3 style={{ fontSize: '16px', fontWeight: 'bold' }}>오늘 할 일 관리</h3>
         </div>
         <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-          <input 
-            type="text" 
+          <input
+            type="text"
             placeholder="할 일 추가하기..."
             value={newTodo}
             onChange={(e) => setNewTodo(e.target.value)}
@@ -141,13 +141,13 @@ const SettingsScreen = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {todos.length > 0 ? todos.map(t => (
             <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div 
+              <div
                 onClick={() => toggleTodo(t.id)}
                 style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}
               >
                 <CheckCircle2 size={20} color={t.completed ? 'var(--primary-color)' : '#E5E5EA'} />
-                <span style={{ 
-                  fontSize: '14px', 
+                <span style={{
+                  fontSize: '14px',
                   color: t.completed ? 'var(--text-secondary)' : 'var(--text-primary)',
                   textDecoration: t.completed ? 'line-through' : 'none'
                 }}>
@@ -157,6 +157,50 @@ const SettingsScreen = () => {
               <Trash2 size={16} color="#FF3B30" style={{ cursor: 'pointer' }} onClick={() => removeTodo(t.id)} />
             </div>
           )) : <p style={{ fontSize: '13px', color: '#8E8E93', textAlign: 'center' }}>등록된 할 일이 없습니다.</p>}
+        </div>
+      </div>
+
+      {/* 테마 설정 */}
+      <div className="card">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+          <Moon size={20} color="var(--primary-color)" />
+          <h3 style={{ fontSize: '16px', fontWeight: 'bold' }}>테마 설정</h3>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '14px' }}>어두운 테마 (Dark Mode)</span>
+          <div
+            onClick={() => {
+              const newTheme = settings.theme === 'dark' ? 'light' : 'dark';
+              const updated = { ...settings, theme: newTheme };
+              setSettings(updated);
+              saveAppSettings(updated);
+              if (newTheme === 'dark') {
+                document.body.classList.add('dark');
+              } else {
+                document.body.classList.remove('dark');
+              }
+            }}
+            style={{
+              width: '44px',
+              height: '24px',
+              borderRadius: '12px',
+              background: settings.theme === 'dark' ? 'var(--primary-color)' : '#E5E5EA',
+              position: 'relative',
+              cursor: 'pointer',
+              transition: 'background 0.3s'
+            }}
+          >
+            <div style={{
+              width: '20px',
+              height: '20px',
+              borderRadius: '10px',
+              background: 'white',
+              position: 'absolute',
+              top: '2px',
+              left: settings.theme === 'dark' ? '22px' : '2px',
+              transition: 'left 0.3s'
+            }} />
+          </div>
         </div>
       </div>
 
@@ -174,25 +218,25 @@ const SettingsScreen = () => {
           ].map(item => (
             <div key={item.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '14px' }}>{item.label}</span>
-              <div 
+              <div
                 onClick={() => toggleNotification(item.key)}
-                style={{ 
-                  width: '44px', 
-                  height: '24px', 
-                  borderRadius: '12px', 
+                style={{
+                  width: '44px',
+                  height: '24px',
+                  borderRadius: '12px',
                   background: notifications[item.key] ? 'var(--primary-color)' : '#E5E5EA',
                   position: 'relative',
                   cursor: 'pointer',
                   transition: 'background 0.3s'
                 }}
               >
-                <div style={{ 
-                  width: '20px', 
-                  height: '20px', 
-                  borderRadius: '10px', 
-                  background: 'white', 
-                  position: 'absolute', 
-                  top: '2px', 
+                <div style={{
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '10px',
+                  background: 'white',
+                  position: 'absolute',
+                  top: '2px',
                   left: notifications[item.key] ? '22px' : '2px',
                   transition: 'left 0.3s'
                 }} />
@@ -202,8 +246,20 @@ const SettingsScreen = () => {
         </div>
       </div>
 
+
       {/* 기타 설정 */}
       <div className="card" style={{ padding: '8px 0' }}>
+        <div onClick={() => {
+          if (window.confirm('정말 로그아웃 하시겠습니까?')) {
+            logoutUser();
+            if (onLogout) onLogout();
+          }
+        }} style={{ display: 'flex', alignItems: 'center', padding: '16px', cursor: 'pointer' }}>
+          <LogOut size={20} color="var(--primary-color)" style={{ marginRight: '12px' }} />
+          <span style={{ flex: 1, fontWeight: '600' }}>로그아웃</span>
+          <ChevronRight size={20} color="#C7C7CC" />
+        </div>
+        <div style={{ height: '1px', background: '#F2F2F7', margin: '0 16px' }} />
         <div onClick={handleReset} style={{ display: 'flex', alignItems: 'center', padding: '16px', cursor: 'pointer' }}>
           <RefreshCcw size={20} color="#FF3B30" style={{ marginRight: '12px' }} />
           <span style={{ flex: 1, color: '#FF3B30', fontWeight: '600' }}>데이터 초기화</span>

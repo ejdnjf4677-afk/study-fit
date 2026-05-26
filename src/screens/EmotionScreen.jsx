@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Smile, Frown, Meh, Star, Save } from 'lucide-react';
+import { Sparkles, Save, ChevronRight, Activity } from 'lucide-react';
 import { saveEmotionLog } from '../utils/storage';
 
 const EmotionScreen = ({ lastSession, onSave }) => {
@@ -8,7 +8,14 @@ const EmotionScreen = ({ lastSession, onSave }) => {
   const [reason, setReason] = useState('보람참');
   const [note, setNote] = useState('');
 
-  const emotions = ['😊', '🤩', '😐', '😴', '😫'];
+  const emotions = [
+    { emoji: '😊', label: '매우 좋음' },
+    { emoji: '🤩', label: '좋음' },
+    { emoji: '😐', label: '보통' },
+    { emoji: '😴', label: '피곤함' },
+    { emoji: '😫', label: '나쁨' }
+  ];
+  
   const reasons = ['보람참', '이해됨', '집중안됨', '피곤함', '어려움'];
 
   const handleSave = () => {
@@ -24,89 +31,138 @@ const EmotionScreen = ({ lastSession, onSave }) => {
   };
 
   return (
-    <div className="screen-container" style={{ justifyContent: 'center' }}>
-      <div style={{ width: '100%' }}>
-        <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>감정 기록</h2>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>오늘 공부는 어떠셨나요?</p>
+    <div className="screen-container animate-fade-in" style={{ paddingBottom: '100px' }}>
+      <header style={{ paddingTop: '16px', marginBottom: '24px' }}>
+        <h2 style={{ fontSize: '24px', fontWeight: '800', letterSpacing: '-0.5px', marginBottom: '6px' }}>감정 기록</h2>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '15px', fontWeight: '500' }}>오늘 공부는 어떠셨나요?</p>
+      </header>
 
-        <div className="card" style={{ background: 'var(--primary-light)', border: 'none', marginBottom: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontWeight: '600' }}>{lastSession?.subject}</span>
-            <span style={{ color: 'var(--primary-color)', fontWeight: 'bold' }}>{lastSession?.durationMinutes}분 완료</span>
-          </div>
+      <div className="card" style={{ 
+        background: 'linear-gradient(135deg, var(--primary-color), #56CCF2)', 
+        color: 'white', 
+        border: 'none',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '24px',
+        marginBottom: '24px',
+        borderRadius: '20px',
+        boxShadow: '0 12px 24px rgba(47, 128, 237, 0.2)'
+      }}>
+        <div>
+          <div style={{ fontSize: '14px', opacity: 0.9, fontWeight: '500', marginBottom: '4px' }}>완료한 공부</div>
+          <div style={{ fontSize: '20px', fontWeight: '800' }}>{lastSession?.subject || '알 수 없음'}</div>
         </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: '14px', opacity: 0.9, fontWeight: '500', marginBottom: '4px' }}>집중 시간</div>
+          <div style={{ fontSize: '20px', fontWeight: '800' }}>{lastSession?.durationMinutes || 0}분</div>
+        </div>
+      </div>
 
-        <div className="card">
-          <h3 style={{ fontSize: '16px', marginBottom: '16px' }}>지금 기분은 어떤가요?</h3>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+      <div className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+            <Sparkles size={18} color="var(--primary-color)" />
+            <h3 style={{ fontSize: '16px', fontWeight: '700', margin: 0 }}>지금 기분은 어떤가요?</h3>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
             {emotions.map(e => (
               <button 
-                key={e} 
-                onClick={() => setEmotion(e)}
+                key={e.emoji} 
+                onClick={() => setEmotion(e.emoji)}
                 style={{ 
-                  fontSize: '32px', 
-                  background: emotion === e ? 'var(--primary-light)' : 'transparent',
-                  border: 'none',
-                  borderRadius: '12px',
-                  padding: '8px',
-                  cursor: 'pointer'
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: emotion === e.emoji ? 'var(--primary-light)' : 'var(--tertiary-bg)',
+                  border: emotion === e.emoji ? '2px solid var(--primary-color)' : '2px solid transparent',
+                  borderRadius: '16px',
+                  padding: '12px 0',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  boxShadow: emotion === e.emoji ? '0 4px 12px rgba(47,128,237,0.1)' : 'none'
                 }}
               >
-                {e}
+                <span style={{ fontSize: '32px' }}>{e.emoji}</span>
+                <span style={{ fontSize: '12px', fontWeight: emotion === e.emoji ? '700' : '500', color: emotion === e.emoji ? 'var(--primary-color)' : 'var(--text-secondary)' }}>{e.label}</span>
               </button>
             ))}
           </div>
+        </div>
 
-          <h3 style={{ fontSize: '16px', marginBottom: '16px' }}>감정 강도: {intensity}%</h3>
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Activity size={18} color="var(--primary-color)" />
+              <h3 style={{ fontSize: '16px', fontWeight: '700', margin: 0 }}>감정 강도</h3>
+            </div>
+            <div style={{ fontSize: '16px', fontWeight: '800', color: 'var(--primary-color)' }}>{intensity}%</div>
+          </div>
           <input 
             type="range" 
             min="0" max="100" 
             value={intensity} 
             onChange={(e) => setIntensity(e.target.value)}
-            style={{ width: '100%', marginBottom: '24px', accentColor: 'var(--primary-color)' }}
+            style={{ width: '100%', accentColor: 'var(--primary-color)', height: '8px', borderRadius: '4px' }}
           />
+        </div>
 
-          <h3 style={{ fontSize: '16px', marginBottom: '16px' }}>이유 선택</h3>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '24px' }}>
+        <div>
+          <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '12px' }}>그렇게 느낀 주된 이유</h3>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
             {reasons.map(r => (
               <button 
                 key={r} 
                 onClick={() => setReason(r)}
                 style={{ 
-                  padding: '8px 16px', 
-                  borderRadius: '20px', 
-                  border: '1px solid #E5E5EA',
-                  background: reason === r ? 'var(--primary-color)' : 'white',
-                  color: reason === r ? 'white' : 'var(--text-primary)',
+                  padding: '12px 18px', 
+                  borderRadius: '12px', 
+                  background: reason === r ? 'var(--primary-color)' : 'var(--tertiary-bg)',
+                  color: reason === r ? 'white' : 'var(--text-secondary)',
+                  border: 'none',
                   fontSize: '14px',
-                  cursor: 'pointer'
+                  fontWeight: reason === r ? '700' : '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  boxShadow: reason === r ? '0 4px 12px rgba(47,128,237,0.2)' : 'none'
                 }}
               >
                 {r}
               </button>
             ))}
           </div>
+        </div>
 
-          <h3 style={{ fontSize: '16px', marginBottom: '12px' }}>한 줄 메모</h3>
+        <div>
+          <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '12px' }}>한 줄 메모</h3>
           <input 
             type="text" 
-            placeholder="오늘 공부 소감을 적어주세요."
+            placeholder="오늘 공부 소감을 자유롭게 적어주세요."
             value={note}
             onChange={(e) => setNote(e.target.value)}
             style={{ 
               width: '100%', 
-              padding: '12px', 
-              borderRadius: '12px', 
-              border: '1px solid #E5E5EA',
-              marginBottom: '24px'
+              padding: '16px', 
+              borderRadius: '16px', 
+              border: '1px solid #E2E8F0',
+              background: '#F8F9FB',
+              fontSize: '15px',
+              fontFamily: 'inherit',
+              outline: 'none',
+              transition: 'border 0.2s'
             }}
+            onFocus={(e) => e.target.style.borderColor = 'var(--primary-color)'}
+            onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
           />
-
-          <button className="btn-primary" onClick={handleSave}>
-            <Save size={20} />
-            기록 저장하기
-          </button>
         </div>
+
+        <button className="btn-primary" onClick={handleSave} style={{ marginTop: '8px', padding: '18px' }}>
+          <Save size={20} />
+          기록 저장하기
+        </button>
       </div>
     </div>
   );
