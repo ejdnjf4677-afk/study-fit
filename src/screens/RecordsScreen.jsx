@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Trash2, Clock, Smile, AlertCircle, BarChart3, ChevronDown, ChevronUp, Save, Search, Filter } from 'lucide-react';
+import { Calendar, Trash2, Clock, Smile, AlertCircle, BarChart3, ChevronDown, ChevronUp, Save, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getStudyRecords, getEmotionLogs, getFailureLogs, deleteRecord, saveEmotionLog, saveFailureLog } from '../utils/storage';
 
 const RecordsScreen = () => {
@@ -8,6 +8,8 @@ const RecordsScreen = () => {
   const [failures, setFailures] = useState([]);
   const [activeTab, setActiveTab] = useState('study');
   const [expandedDate, setExpandedDate] = useState(new Date().toLocaleDateString());
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [deleteModal, setDeleteModal] = useState(null); // { type, id }
   const [infoModal, setInfoModal] = useState(null);   // { message }
 
@@ -103,6 +105,145 @@ const RecordsScreen = () => {
       stats[r.subject] = (stats[r.subject] || 0) + r.durationMinutes;
     });
     return Object.entries(stats).sort((a, b) => b[1] - a[1]);
+  };
+
+  const getDateKey = (date) => {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const selectedDateKey = getDateKey(selectedDate);
+  const selectedDateLabel = selectedDate.toLocaleDateString('ko-KR', {
+    month: 'long',
+    day: 'numeric',
+    weekday: 'short'
+  });
+
+  const getCalendarData = () => {
+    const data = {};
+    const add = (type, item) => {
+      const key = getDateKey(item.timestamp);
+      if (!data[key]) data[key] = { study: 0, emotion: 0, failure: 0, minutes: 0 };
+      data[key][type] += 1;
+      if (type === 'study') data[key].minutes += item.durationMinutes || 0;
+    };
+
+    records.forEach(item => add('study', item));
+    emotions.forEach(item => add('emotion', item));
+    failures.forEach(item => add('failure', item));
+    return data;
+  };
+
+  const getSelectedSummary = () => {
+    const isSelectedDay = (item) => getDateKey(item.timestamp) === selectedDateKey;
+    return {
+      study: records.filter(isSelectedDay),
+      emotion: emotions.filter(isSelectedDay),
+      failure: failures.filter(isSelectedDay)
+    };
+  };
+
+  const moveCalendarMonth = (offset) => {
+    setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + offset, 1));
+  };
+
+  const renderCalendar = () => {
+    const calendarData = getCalendarData();
+    const selectedSummary = getSelectedSummary();
+    const year = calendarMonth.getFullYear();
+    const month = calendarMonth.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const cells = [
+      ...Array.from({ length: firstDay }, (_, i) => ({ key: `empty-${i}`, empty: true })),
+      ...Array.from({ length: daysInMonth }, (_, i) => {
+        const date = new Date(year, month, i + 1);
+        const key = getDateKey(date);
+        return { key, date, day: i + 1, data: calendarData[key] };
+      })
+    ];
+
+    return (
+      <div className="card" style={{ padding: '18px', marginBottom: '18px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <button onClick={() => moveCalendarMonth(-1)} aria-label="이전 달" style={{ width: '34px', height: '34px', border: 'none', borderRadius: '12px', background: 'var(--tertiary-bg)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <ChevronLeft size={18} />
+          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '17px', fontWeight: '800' }}>
+            <Calendar size={18} color="var(--primary-color)" />
+            {calendarMonth.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' })}
+          </div>
+          <button onClick={() => moveCalendarMonth(1)} aria-label="다음 달" style={{ width: '34px', height: '34px', border: 'none', borderRadius: '12px', background: 'var(--tertiary-bg)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <ChevronRight size={18} />
+          </button>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px', marginBottom: '8px' }}>
+          {['일', '월', '화', '수', '목', '금', '토'].map(day => (
+            <div key={day} style={{ textAlign: 'center', fontSize: '12px', fontWeight: '700', color: 'var(--text-tertiary)' }}>{day}</div>
+          ))}
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px' }}>
+          {cells.map(cell => {
+            if (cell.empty) return <div key={cell.key} style={{ aspectRatio: '1 / 1' }} />;
+            const isSelected = cell.key === selectedDateKey;
+            const hasData = cell.data && (cell.data.study || cell.data.emotion || cell.data.failure);
+            return (
+              <button
+                key={cell.key}
+                onClick={() => {
+                  setSelectedDate(cell.date);
+                  setExpandedDate(cell.date.toLocaleDateString());
+                }}
+                style={{
+                  aspectRatio: '1 / 1',
+                  border: isSelected ? '2px solid var(--primary-color)' : '1px solid transparent',
+                  borderRadius: '14px',
+                  background: isSelected ? 'var(--primary-light)' : hasData ? 'var(--secondary-bg)' : 'var(--tertiary-bg)',
+                  color: isSelected ? 'var(--primary-color)' : 'var(--text-primary)',
+                  boxShadow: hasData ? '0 4px 12px rgba(15, 23, 42, 0.06)' : 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '4px',
+                  fontSize: '13px',
+                  fontWeight: '800'
+                }}
+              >
+                {cell.day}
+                <span style={{ display: 'flex', gap: '3px', minHeight: '5px' }}>
+                  {cell.data?.study > 0 && <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'var(--primary-color)' }} />}
+                  {cell.data?.emotion > 0 && <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#FF2D55' }} />}
+                  {cell.data?.failure > 0 && <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'var(--warning-color)' }} />}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{ marginTop: '16px', padding: '14px', borderRadius: '16px', background: 'var(--tertiary-bg)' }}>
+          <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '700', marginBottom: '10px' }}>{selectedDateLabel}</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+            {[
+              { label: '공부', value: `${selectedSummary.study.length}건`, color: 'var(--primary-color)' },
+              { label: '감정', value: `${selectedSummary.emotion.length}건`, color: '#FF2D55' },
+              { label: '실패', value: `${selectedSummary.failure.length}건`, color: 'var(--warning-color)' }
+            ].map(item => (
+              <div key={item.label} style={{ background: 'var(--secondary-bg)', borderRadius: '12px', padding: '10px', textAlign: 'center' }}>
+                <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', fontWeight: '700', marginBottom: '4px' }}>{item.label}</div>
+                <div style={{ fontSize: '15px', color: item.color, fontWeight: '800' }}>{item.value}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const renderStudyTab = () => (
@@ -450,6 +591,8 @@ const RecordsScreen = () => {
       <header style={{ paddingTop: '16px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2 style={{ fontSize: '24px', fontWeight: '800', letterSpacing: '-0.5px' }}>기록 보관함</h2>
       </header>
+
+      {renderCalendar()}
 
       <div className="tabs-container" style={{ padding: '6px', borderRadius: '16px', background: 'var(--tertiary-bg)' }}>
         {[
