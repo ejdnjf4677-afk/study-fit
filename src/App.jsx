@@ -3,6 +3,7 @@ import StartScreen from './screens/StartScreen';
 import HomeScreen from './screens/HomeScreen';
 import TimerScreen from './screens/TimerScreen';
 import RecordsScreen from './screens/RecordsScreen';
+import CalendarScreen from './screens/CalendarScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import StatsScreen from './screens/StatsScreen';
 import RewardsScreen from './screens/RewardScreen';
@@ -76,6 +77,8 @@ function App() {
         return <TimerScreen onFinish={handleTimerFinish} onBack={() => setScreen('home')} />;
       case 'records':
         return <RecordsScreen />;
+      case 'calendar':
+        return <CalendarScreen />;
       case 'stats':
         return <StatsScreen />;
       case 'reward':

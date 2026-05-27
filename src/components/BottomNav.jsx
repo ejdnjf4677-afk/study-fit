@@ -1,10 +1,11 @@
 import React from 'react';
-import { Home, Timer, CalendarCheck, BarChart2, Gift, Bot, Settings } from 'lucide-react';
+import { Home, Calendar, CalendarCheck, BarChart2, Gift, Bot, Settings } from 'lucide-react';
 
 const BottomNav = ({ setScreen, activeScreen }) => {
   const tabs = [
     { id: 'home', label: '홈', icon: Home },
     { id: 'records', label: '기록', icon: CalendarCheck },
+    { id: 'calendar', label: '캘린더', icon: Calendar },
     { id: 'stats', label: '통계', icon: BarChart2 },
     { id: 'reward', label: '보상', icon: Gift },
     { id: 'aicoach', label: 'AI 코치', icon: Bot },
