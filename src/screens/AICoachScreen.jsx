@@ -1,12 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bot, Send, Sparkles, TrendingUp, Brain, Heart, Target, AlertTriangle, MessageSquare } from 'lucide-react';
+import { Bot, Send, Sparkles, Brain, Heart, AlertTriangle } from 'lucide-react';
 import { getStudyRecords, getEmotionLogs, getFailureLogs, getAppSettings, getUserPoints } from '../utils/storage';
 import { calculateConcentrationScore } from '../utils/logic';
 
 const AICoachScreen = () => {
   const [question, setQuestion] = useState('');
-  const [chat, setChat] = useState([]);
+  const [chat, setChat] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('ai_coach_chat') || '[]');
+    } catch {
+      return [];
+    }
+  });
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const chatEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -17,7 +24,11 @@ const AICoachScreen = () => {
     scrollToBottom();
   }, [chat]);
 
-  const analyzeData = (userInput) => {
+  useEffect(() => {
+    localStorage.setItem('ai_coach_chat', JSON.stringify(chat.slice(-30)));
+  }, [chat]);
+
+  const getStudyContext = () => {
     const records = getStudyRecords();
     const emotions = getEmotionLogs();
     const failures = getFailureLogs();
@@ -36,46 +47,83 @@ const AICoachScreen = () => {
     const subjectMins = {};
     records.forEach(r => { subjectMins[r.subject] = (subjectMins[r.subject] || 0) + r.durationMinutes; });
     const topSubject = Object.entries(subjectMins).sort((a, b) => b[1] - a[1])[0]?.[0] || '없음';
+    const concentrationScore = todayRecords.length > 0
+      ? calculateConcentrationScore(Math.min(100, (todayMins / settings.dailyGoal) * 100), totalPauses, {
+          records: todayRecords,
+          emotions: todayEmotions,
+          failures: todayFailures
+        })
+      : 0;
 
+    return {
+      dailyGoalMinutes: settings.dailyGoal,
+      points,
+      today: {
+        studyMinutes: todayMins,
+        sessionCount: todayRecords.length,
+        totalPauses,
+        avgPauses,
+        emotionCount: todayEmotions.length,
+        failureCount: todayFailures.length,
+        concentrationScore
+      },
+      allTime: {
+        recordCount: records.length,
+        topSubject,
+        recentEmotions: emotions.slice(-5),
+        recentFailures: failures.slice(-5)
+      }
+    };
+  };
+
+  const analyzeData = (userInput) => {
+    const context = getStudyContext();
     const input = userInput.toLowerCase();
+    const { dailyGoalMinutes, points, today, allTime } = context;
 
-    // 1. 인사 및 격려
+    if (input.includes('핸드폰') || input.includes('휴대폰') || input.includes('폰') || input.includes('스마트폰')) {
+      return '핸드폰은 의지로 이기기보다 안 보이게 만드는 게 제일 빨라요. 20분만 방해금지 모드로 두고, 화면을 뒤집어 놓은 다음 첫 문제 하나만 시작해보세요.';
+    }
+
     if (input.includes('안녕') || input.includes('반가워')) {
-      return `안녕하세요! 오늘 하루도 목표 ${settings.dailyGoal}분 달성을 향해 화이팅입니다. 어떤 부분이 궁금하신가요?`;
+      return `안녕하세요! 오늘 하루도 목표 ${dailyGoalMinutes}분 달성을 향해 차근차근 가보면 좋겠습니다. 어떤 공부 고민부터 같이 볼까요?`;
     }
 
-    // 2. 집중 및 몰입 관련 심층 분석
+    if (input.includes('시험') || input.includes('중간') || input.includes('기말') || input.includes('과제')) {
+      return '시험 준비는 범위를 전부 보려 하면 더 막막해져요. 오늘은 자주 틀리는 단원 하나만 고르고, 25분 복습 후 5문제만 풀어보세요. 끝나면 틀린 이유를 한 줄로 남기면 충분합니다.';
+    }
+
+    if (input.includes('계획') || input.includes('플랜') || input.includes('루틴') || input.includes('일정')) {
+      return '루틴은 거창할수록 오래가기 어려워요. 시작 10분, 핵심 공부 25분, 정리 5분 이렇게 3칸만 잡아보세요. 첫 칸은 쉬워야 진짜 시작됩니다.';
+    }
+
+    if (input.includes('졸림') || input.includes('졸려') || input.includes('잠') || input.includes('피곤')) {
+      return '졸릴 때는 오래 앉아 있는 것보다 회복이 먼저예요. 물 한 잔 마시고 5분 걷거나, 너무 졸리면 15분만 눈을 붙여보세요. 돌아오면 암기보다 쉬운 문제풀이부터 추천해요.';
+    }
+
+    if (input.includes('불안') || input.includes('초조') || input.includes('걱정') || input.includes('멘탈')) {
+      return '불안할 땐 목표를 작게 줄이는 게 먼저예요. 지금은 “공부 다 하기” 말고 첫 3분 보기, 1번 문제 읽기처럼 다음 행동 하나만 정해보세요.';
+    }
+
+    if (input.includes('실패 원인') || input.includes('실패') || input.includes('망') || input.includes('딴짓') || input.includes('안돼')) {
+      return '실패 기록은 혼나는 기록이 아니라 패턴 찾는 기록이에요. 방해 원인을 하나만 고르고, 다음 세션 전에 그 원인을 1단계만 줄여보세요. 예: 알림 끄기, 책상 위 물건 3개 치우기, 목표 15분으로 낮추기.';
+    }
+
     if (input.includes('집중') || input.includes('몰입') || input.includes('산만')) {
-      if (avgPauses > 3) return `최근 기록을 분석해보니, 공부 세션 당 평균 중단 횟수가 ${avgPauses.toFixed(1)}회로 다소 높은 편입니다. 백색소음을 '빗소리'로 설정하거나 25분 집중, 5분 휴식하는 '뽀모도로 기법'을 활용해 보세요.`;
-      if (todayMins > 120) return `오늘 벌써 ${todayMins}분이나 집중하셨네요! 장시간 집중 후에는 뇌도 휴식이 필요합니다. 15분 정도 산책이나 가벼운 스트레칭을 추천드립니다.`;
-      if (records.length === 0) return "아직 공부 기록이 충분하지 않아요. 집중력을 높이려면 공부 시작 전 주변을 정리하고 5분간 명상하는 것이 큰 도움이 됩니다.";
-      return `현재 회원님의 주력 과목은 '${topSubject}'(으)로 분석됩니다. 이 과목을 공부할 때 가장 깊이 몰입하는 경향이 있으니, 집중이 안 될 땐 이 과목부터 시작해 워밍업을 해보세요.`;
+      if (today.avgPauses > 3) return `오늘은 세션당 평균 중단 횟수가 ${today.avgPauses.toFixed(1)}회라서, 다음 세션은 25분만 잡고 휴대폰 알림을 먼저 꺼보세요.`;
+      if (today.studyMinutes > 120) return `오늘 이미 ${today.studyMinutes}분 공부했어요. 지금은 10분 쉬고 다음 세션 목표를 하나만 정하는 게 좋아 보입니다.`;
+      if (allTime.recordCount === 0) return '아직 공부 기록이 충분하지 않아요. 지금은 책상 정리 2분, 타이머 10분, 쉬운 문제 1개로 시작해보세요.';
+      return `현재 주력 과목은 '${allTime.topSubject}'로 보여요. 집중이 안 될 땐 이 과목으로 10분 워밍업한 뒤 어려운 과목으로 넘어가보세요.`;
     }
 
-    // 3. 감정 및 스트레스 분석
     if (input.includes('감정') || input.includes('기분') || input.includes('힘들') || input.includes('스트레스')) {
-      const negativeEmotions = emotions.filter(e => ['😫', '😴'].includes(e.emotion));
+      const negativeEmotions = allTime.recentEmotions.filter(e => ['😫', '😴', 'tired', 'anxious', 'sleepy'].includes(e.emotion));
       if (negativeEmotions.length > 3) return "최근 감정 기록에서 '피곤함'이나 '나쁨'이 자주 관찰됩니다. 번아웃이 올 수 있으니 오늘은 무리한 계획보다는 푹 쉬는 것을 최우선으로 고려해 보세요. 건강이 제일 중요합니다!";
-      const positiveEmotions = emotions.filter(e => ['😊', '🤩'].includes(e.emotion));
+      const positiveEmotions = allTime.recentEmotions.filter(e => ['😊', '🤩', 'good', 'focused'].includes(e.emotion));
       if (positiveEmotions.length > 0) return "최근 '보람차다'는 긍정적인 감정을 느끼셨군요! 이럴 때 자신이 공부했던 성과를 되돌아보면 동기부여에 아주 좋습니다.";
       return "학습 후 감정을 꾸준히 기록하면 나의 멘탈 패턴을 알 수 있습니다. 오늘 공부 후에도 꼭 감정 기록을 남겨주세요.";
     }
 
-    // 4. 실패 원인 및 휴식 분석
-    if (input.includes('왜 자꾸 쉴까') || input.includes('실패') || input.includes('딴짓') || input.includes('안돼')) {
-      const phoneFailures = failures.filter(f => f.reason === '스마트폰');
-      const sleepFailures = failures.filter(f => f.reason.includes('졸음') || f.reason.includes('피로'));
-      if (phoneFailures.length >= 2) return "분석 결과, 실패 원인 중 '스마트폰'이 가장 큰 비중을 차지하고 있습니다. 내일은 공부 시작 전 스마트폰을 아예 다른 방에 두고 시작해보는 과감한 환경 통제가 필요합니다.";
-      if (sleepFailures.length >= 1) return "수면 부족이나 피로가 방해 요소로 기록되었어요. 수면 시간을 일정하게 유지하는 것이 학습 효율의 핵심입니다.";
-      return "모든 실패는 더 나은 학습을 위한 데이터입니다. 이전에 작성하신 개선 방안(예: '책상 정리하기')을 내일 가장 먼저 실천해 보세요!";
-    }
-
-    // 5. 해결책 제시
-    if (input.includes('피곤') || input.includes('졸려') || input.includes('잠와')) {
-      return "피로가 누적된 상태에서 억지로 책상에 앉아있는 것은 비효율적입니다. 눈을 감고 10~15분 정도의 파워 낮잠(Power Nap)을 주무시거나, 시원한 물을 한 잔 마시고 오시는 것을 추천합니다.";
-    }
-
-    // 6. 보상 및 목표
     if (input.includes('보상') || input.includes('포인트') || input.includes('선물')) {
       const target = 15000;
       if (points >= target) return `현재 ${points.toLocaleString()}P를 획득하셨습니다! 보상 상점에서 원하시는 기프티콘으로 당장 교환하실 수 있어요. 수고 많으셨습니다.`;
@@ -83,36 +131,54 @@ const AICoachScreen = () => {
     }
 
     if (input.includes('과목') || input.includes('어떤 거')) {
-      if (topSubject !== '없음') return `기록에 따르면 '${topSubject}' 과목에 가장 많은 시간을 투자하고 계시네요. 밸런스를 위해 평소 덜 하던 과목을 오늘 도전해보는 건 어떨까요?`;
+      if (allTime.topSubject !== '없음') return `기록에 따르면 '${allTime.topSubject}' 과목에 가장 많은 시간을 투자하고 계시네요. 밸런스를 위해 평소 덜 하던 과목을 오늘 도전해보는 건 어떨까요?`;
     }
 
-    // 7. 기본 분석 (문맥 파악 불가 시)
-    if (todayMins === 0) {
+    if (today.studyMinutes === 0) {
       return "아직 오늘의 공부 기록이 없습니다. 완벽하게 하려는 마음을 내려놓고 딱 10분만 일단 시작해보는 건 어떨까요? 시작이 반입니다!";
     }
-    const score = calculateConcentrationScore(Math.min(100, (todayMins / settings.dailyGoal) * 100), totalPauses, {
-      records: todayRecords,
-      emotions: todayEmotions,
-      failures: todayFailures
-    });
-    if (score > 85) return `분석 결과 오늘 집중 점수가 ${score}점으로 상당히 높습니다! 이 좋은 흐름을 유지해서, 평소에 미루던 가장 까다로운 과목을 지금 바로 공략해 보세요.`;
-    return `오늘 하루 ${todayMins}분 동안 정말 열심히 하셨습니다. 목표 대비 달성률은 ${(todayMins / settings.dailyGoal * 100).toFixed(1)}% 입니다. 조금만 더 힘내서 목표를 채워볼까요?`;
+    if (today.concentrationScore > 85) return `분석 결과 오늘 집중 점수가 ${today.concentrationScore}점으로 상당히 높습니다. 이 흐름을 유지해서 가장 까다로운 과목을 짧게라도 공략해보세요.`;
+    return `오늘 하루 ${today.studyMinutes}분 공부했고 목표 대비 달성률은 ${(today.studyMinutes / dailyGoalMinutes * 100).toFixed(1)}%입니다. 다음 세션은 25분 집중과 5분 휴식으로 작게 이어가보세요.`;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!question.trim()) return;
 
     const userMsg = { role: 'user', text: question };
-    setChat(prev => [...prev, userMsg]);
+    const nextChat = [...chat, userMsg];
+    setChat(nextChat);
     setQuestion('');
     setLoading(true);
+    setErrorMessage('');
 
-    setTimeout(() => {
-      const aiResponse = analyzeData(userMsg.text);
-      setChat(prev => [...prev, { role: 'ai', text: aiResponse }]);
+    try {
+      const response = await fetch('/api/coach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: userMsg.text,
+          history: chat,
+          context: getStudyContext()
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('AI 코치 서버 응답이 원활하지 않습니다.');
+      }
+
+      const data = await response.json();
+      if (data.fallback) {
+        setErrorMessage('지금은 AI 코치가 임시 모드로 답변 중이에요.');
+      }
+      setChat(prev => [...prev, { role: 'ai', text: data.reply || analyzeData(userMsg.text) }]);
+    } catch (error) {
+      console.error(error);
+      setErrorMessage('지금은 AI 코치가 임시 모드로 답변 중이에요.');
+      setChat(prev => [...prev, { role: 'ai', text: analyzeData(userMsg.text) }]);
+    } finally {
       setLoading(false);
-    }, 2500);
+    }
   };
 
   return (
@@ -123,6 +189,13 @@ const AICoachScreen = () => {
         </h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: '15px', fontWeight: '500', marginTop: '4px' }}>데이터 기반 개인 맞춤형 피드백</p>
       </header>
+
+      {errorMessage && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 14px', borderRadius: '14px', background: '#FFF5F5', color: 'var(--error-color)', fontSize: '12px', fontWeight: '700', marginBottom: '12px' }}>
+          <AlertTriangle size={16} />
+          {errorMessage}
+        </div>
+      )}
 
       {/* 분석 대시보드 요약 */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
