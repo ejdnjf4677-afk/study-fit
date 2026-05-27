@@ -10,14 +10,17 @@ import AICoachScreen from './screens/AICoachScreen';
 import EmotionScreen from './screens/EmotionScreen';
 import FailureScreen from './screens/FailureScreen';
 import BottomNav from './components/BottomNav';
-import { getCurrentUser } from './utils/storage';
+import { getCurrentSession } from './utils/auth';
+import { supabase } from './lib/supabase';
 
 function App() {
   const [screen, setScreen] = useState('start');
   const [lastSession, setLastSession] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
-    try {
+    const initializeApp = async () => {
       // Theme Check
       const storedSettings = localStorage.getItem('app_settings');
       if (storedSettings) {
@@ -28,17 +31,34 @@ function App() {
           document.body.classList.remove('dark');
         }
       }
-      
+
       // Session Check
-      const user = getCurrentUser();
-      if (user) {
+      localStorage.removeItem('studyfit_users');
+      localStorage.removeItem('studyfit_current_user');
+      const session = await getCurrentSession();
+      if (session?.user) {
+        setCurrentUser(session.user);
         setScreen('home');
       } else {
+        setCurrentUser(null);
         setScreen('start');
       }
-    } catch (e) {
+      setAuthLoading(false);
+    };
+
+    initializeApp().catch((e) => {
       console.error(e);
-    }
+      setAuthLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const user = session?.user || null;
+      setCurrentUser(user);
+      if (event === 'SIGNED_IN') setScreen('home');
+      if (event === 'SIGNED_OUT') setScreen('start');
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleTimerFinish = (sessionData) => {
@@ -49,9 +69,9 @@ function App() {
   const renderScreen = () => {
     switch (screen) {
       case 'start':
-        return <StartScreen onStart={() => setScreen('home')} />;
+        return <StartScreen onStart={(user) => { setCurrentUser(user); setScreen('home'); }} />;
       case 'home':
-        return <HomeScreen onStartStudy={() => setScreen('timer')} />;
+        return <HomeScreen user={currentUser} onStartStudy={() => setScreen('timer')} />;
       case 'timer':
         return <TimerScreen onFinish={handleTimerFinish} onBack={() => setScreen('home')} />;
       case 'records':
@@ -63,11 +83,19 @@ function App() {
       case 'aicoach':
         return <AICoachScreen />;
       case 'settings':
-        return <SettingsScreen onLogout={() => setScreen('start')} />;
+        return <SettingsScreen user={currentUser} onLogout={() => { setCurrentUser(null); setScreen('start'); }} />;
       default:
-        return <HomeScreen onStartStudy={() => setScreen('timer')} />;
+        return <HomeScreen user={currentUser} onStartStudy={() => setScreen('timer')} />;
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="screen-container centered-screen">
+        <div style={{ fontSize: '15px', color: 'var(--text-secondary)', fontWeight: '700' }}>로그인 상태 확인 중...</div>
+      </div>
+    );
+  }
 
   return (
     <>

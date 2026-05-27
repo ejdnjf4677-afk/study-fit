@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { CalendarCheck, Clock, Play, CheckCircle2, Circle, TrendingUp, Sparkles, ChevronRight } from 'lucide-react';
-import { getStudyRecords, getUserPoints, getAppSettings, getStreak, getTodos, saveTodos, getCurrentUser } from '../utils/storage';
+import { getStudyRecords, getEmotionLogs, getFailureLogs, getUserPoints, getAppSettings, getStreak, getTodos, saveTodos } from '../utils/storage';
 import { calculateConcentrationScore } from '../utils/logic';
 
-const HomeScreen = ({ onStartStudy }) => {
+const HomeScreen = ({ user, onStartStudy }) => {
   const [nickname, setNickname] = useState('사용자');
   const [stats, setStats] = useState({
     todayMinutes: 0,
@@ -16,6 +16,8 @@ const HomeScreen = ({ onStartStudy }) => {
 
   useEffect(() => {
     const records = getStudyRecords();
+    const emotions = getEmotionLogs();
+    const failures = getFailureLogs();
     const settings = getAppSettings();
     const userPoints = getUserPoints();
     const userStreak = getStreak();
@@ -23,14 +25,20 @@ const HomeScreen = ({ onStartStudy }) => {
     // Calculate today's minutes
     const today = new Date().toLocaleDateString();
     const todayRecords = records.filter(r => new Date(r.timestamp).toLocaleDateString() === today);
+    const todayEmotions = emotions.filter(e => new Date(e.timestamp).toLocaleDateString() === today);
+    const todayFailures = failures.filter(f => new Date(f.timestamp).toLocaleDateString() === today);
     const todayMinutes = todayRecords.reduce((acc, r) => acc + r.durationMinutes, 0);
 
     const achievementRate = Math.min(100, Math.round((todayMinutes / settings.dailyGoal) * 100));
 
     // Average concentration score for today
-    const totalPauses = todayRecords.reduce((acc, r) => acc + r.pauseCount, 0);
+    const totalPauses = todayRecords.reduce((acc, r) => acc + (r.pauseCount || 0), 0);
     const concentrationScore = todayRecords.length > 0
-      ? calculateConcentrationScore(achievementRate, totalPauses)
+      ? calculateConcentrationScore(achievementRate, totalPauses, {
+          records: todayRecords,
+          emotions: todayEmotions,
+          failures: todayFailures
+        })
       : 0;
 
     setStats({
@@ -42,11 +50,10 @@ const HomeScreen = ({ onStartStudy }) => {
     });
     setTodos(getTodos());
 
-    const currentUser = getCurrentUser();
-    if (currentUser) {
-      setNickname(currentUser.nickname || currentUser.username || '사용자');
+    if (user) {
+      setNickname(user.user_metadata?.nickname || user.email?.split('@')[0] || '사용자');
     }
-  }, []);
+  }, [user]);
 
   const toggleTodo = (id) => {
     const updated = todos.map(t => t.id === id ? { ...t, completed: !t.completed } : t);

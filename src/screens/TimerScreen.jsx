@@ -269,6 +269,8 @@ const TimerScreen = ({ onFinish, onBack }) => {
   const [seconds, setSeconds] = useState(0);
   const [isActive, setIsActive] = useState(false);
   const [pauseCount, setPauseCount] = useState(0);
+  const [pauseStartedAt, setPauseStartedAt] = useState(null);
+  const [totalPausedSeconds, setTotalPausedSeconds] = useState(0);
   const [subjects] = useState(getSubjects());
   const [selectedSubject, setSelectedSubject] = useState(getSubjects()[0] || '공부');
   const [showSubjectPicker, setShowSubjectPicker] = useState(false);
@@ -287,19 +289,27 @@ const TimerScreen = ({ onFinish, onBack }) => {
   const handlePause = () => {
     if (isActive) {
       setPauseCount(p => p + 1);
+      setPauseStartedAt(Date.now());
       setIsActive(false);
     } else {
+      if (pauseStartedAt) {
+        setTotalPausedSeconds(prev => prev + Math.round((Date.now() - pauseStartedAt) / 1000));
+        setPauseStartedAt(null);
+      }
       setIsActive(true);
     }
   };
 
   const handleStop = () => {
     setIsActive(false);
+    const activePauseSeconds = pauseStartedAt ? Math.round((Date.now() - pauseStartedAt) / 1000) : 0;
+    const finalPausedSeconds = totalPausedSeconds + activePauseSeconds;
     const durationMinutes = Math.round(seconds / 60);
     const data = {
       subject: selectedSubject,
       durationMinutes,
       pauseCount,
+      pauseMinutes: Math.round(finalPausedSeconds / 60),
       timestamp: new Date().toISOString()
     };
     setSessionData(data);

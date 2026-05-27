@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Bell, Target, BookOpen, Trash2, Info, RefreshCcw, ChevronRight, CheckCircle2, ListTodo, Moon, Tablet, LogOut } from 'lucide-react';
-import { getAppSettings, saveAppSettings, getSubjects, saveSubjects, getNotifications, saveNotifications, clearAllData, getTodos, saveTodos, logoutUser } from '../utils/storage';
+import { getAppSettings, saveAppSettings, getSubjects, saveSubjects, getNotifications, saveNotifications, clearAllData, getTodos, saveTodos } from '../utils/storage';
+import { signOut } from '../utils/auth';
 
-const SettingsScreen = ({ onLogout }) => {
+const SettingsScreen = ({ user, onLogout }) => {
   const [settings, setSettings] = useState(getAppSettings());
   const [subjects, setSubjects] = useState(getSubjects());
   const [notifications, setNotifications] = useState(getNotifications());
@@ -44,9 +45,9 @@ const SettingsScreen = ({ onLogout }) => {
     setConfirmModal({ type: 'reset', message: '정말 모든 데이터를 초기화하시겠습니까?\n이 작업은 되돌릴 수 없습니다.' });
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (confirmModal?.type === 'logout') {
-      logoutUser();
+      await signOut();
       setConfirmModal(null);
       if (onLogout) onLogout();
     } else if (confirmModal?.type === 'reset') {
@@ -261,6 +262,15 @@ const SettingsScreen = ({ onLogout }) => {
 
       {/* 기타 설정 */}
       <div className="card" style={{ padding: '8px 0' }}>
+        {user?.email && (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', padding: '16px' }}>
+              <Info size={20} color="var(--primary-color)" style={{ marginRight: '12px' }} />
+              <span style={{ flex: 1, fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</span>
+            </div>
+            <div style={{ height: '1px', background: '#F2F2F7', margin: '0 16px' }} />
+          </>
+        )}
         <div onClick={() => setConfirmModal({ type: 'logout', message: '정말 로그아웃 하시겠습니까?' })} style={{ display: 'flex', alignItems: 'center', padding: '16px', cursor: 'pointer' }}>
           <LogOut size={20} color="var(--primary-color)" style={{ marginRight: '12px' }} />
           <span style={{ flex: 1, fontWeight: '600' }}>로그아웃</span>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Clock, Target, CalendarDays, Flame, BookOpen } from 'lucide-react';
+import { Clock, Target, CalendarDays, Flame, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getStudyRecords } from '../utils/storage';
 
 /* ─── palette ─── */
@@ -137,6 +137,132 @@ const FocusHeatmap = ({ records }) => {
   );
 };
 
+/* ─── Monthly Study Calendar ─── */
+const StudyCalendar = ({ records }) => {
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
+  const getDateKey = (date) => {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const dailyMinutes = records.reduce((acc, record) => {
+    const key = getDateKey(record.timestamp);
+    acc[key] = (acc[key] || 0) + (record.durationMinutes || 0);
+    return acc;
+  }, {});
+
+  const selectedKey = getDateKey(selectedDate);
+  const selectedMinutes = dailyMinutes[selectedKey] || 0;
+  const selectedSessions = records.filter(record => getDateKey(record.timestamp) === selectedKey).length;
+  const year = calendarMonth.getFullYear();
+  const month = calendarMonth.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const cells = [
+    ...Array.from({ length: firstDay }, (_, i) => ({ key: `empty-${i}`, empty: true })),
+    ...Array.from({ length: daysInMonth }, (_, i) => {
+      const date = new Date(year, month, i + 1);
+      const key = getDateKey(date);
+      return { key, date, day: i + 1, minutes: dailyMinutes[key] || 0 };
+    })
+  ];
+
+  const getIntensity = (minutes) => Math.min(4, Math.floor(minutes / 120));
+  const getCellColor = (minutes, selected) => {
+    if (selected) return 'var(--primary-color)';
+    const colors = ['var(--tertiary-bg)', 'rgba(47, 128, 237, 0.22)', 'rgba(47, 128, 237, 0.45)', 'rgba(47, 128, 237, 0.68)', 'rgba(47, 128, 237, 0.92)'];
+    return colors[getIntensity(minutes)];
+  };
+  const moveMonth = (offset) => {
+    setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + offset, 1));
+  };
+  const formatTime = (minutes) => `${Math.floor(minutes / 60)}시간 ${minutes % 60}분`;
+
+  return (
+    <div className="card" style={{ padding: '22px', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+        <button onClick={() => moveMonth(-1)} aria-label="이전 달" style={{ width: '34px', height: '34px', border: 'none', borderRadius: '12px', background: 'var(--tertiary-bg)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <ChevronLeft size={18} />
+        </button>
+        <div style={{ textAlign: 'center' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: '800', margin: 0 }}>공부 캘린더</h3>
+          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '3px' }}>
+            {calendarMonth.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' })}
+          </p>
+        </div>
+        <button onClick={() => moveMonth(1)} aria-label="다음 달" style={{ width: '34px', height: '34px', border: 'none', borderRadius: '12px', background: 'var(--tertiary-bg)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <ChevronRight size={18} />
+        </button>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px', marginBottom: '8px' }}>
+        {['일', '월', '화', '수', '목', '금', '토'].map(day => (
+          <div key={day} style={{ textAlign: 'center', fontSize: '11px', fontWeight: '700', color: 'var(--text-tertiary)' }}>{day}</div>
+        ))}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px' }}>
+        {cells.map(cell => {
+          if (cell.empty) return <div key={cell.key} style={{ aspectRatio: '1 / 1' }} />;
+          const selected = cell.key === selectedKey;
+          const hasStudy = cell.minutes > 0;
+          return (
+            <button
+              key={cell.key}
+              onClick={() => setSelectedDate(cell.date)}
+              title={`${cell.day}일 ${formatTime(cell.minutes)}`}
+              style={{
+                aspectRatio: '1 / 1',
+                border: selected ? '2px solid var(--primary-dark)' : '1px solid transparent',
+                borderRadius: '12px',
+                background: getCellColor(cell.minutes, selected),
+                color: selected ? 'white' : getIntensity(cell.minutes) >= 3 ? 'white' : 'var(--text-primary)',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '2px',
+                fontSize: '13px',
+                fontWeight: '800',
+                boxShadow: hasStudy ? '0 4px 10px rgba(47, 128, 237, 0.14)' : 'none'
+              }}
+            >
+              {cell.day}
+              {hasStudy && <span style={{ fontSize: '9px', fontWeight: '700', opacity: 0.9 }}>{Math.floor(cell.minutes / 60)}h</span>}
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={{ marginTop: '16px', padding: '14px', borderRadius: '16px', background: 'var(--tertiary-bg)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+        <div>
+          <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '700', marginBottom: '4px' }}>
+            {selectedDate.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })}
+          </div>
+          <div style={{ fontSize: '17px', fontWeight: '800', color: 'var(--text-primary)' }}>{formatTime(selectedMinutes)}</div>
+        </div>
+        <div style={{ textAlign: 'right', fontSize: '12px', color: 'var(--text-tertiary)', fontWeight: '700' }}>
+          {selectedSessions}세션
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '6px', marginTop: '12px' }}>
+        <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', fontWeight: '600' }}>0h</span>
+        {[0, 120, 240, 360, 480].map(minutes => (
+          <div key={minutes} style={{ width: '18px', height: '18px', borderRadius: '5px', background: getCellColor(minutes, false) }} />
+        ))}
+        <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', fontWeight: '600' }}>8h+</span>
+      </div>
+    </div>
+  );
+};
+
 /* ─── Main Screen ─── */
 const StatsScreen = () => {
   const [records, setRecords] = useState([]);
@@ -239,6 +365,8 @@ const StatsScreen = () => {
           </div>
         </div>
       </div>
+
+      <StudyCalendar records={records} />
 
       {/* Weekly Bar Chart */}
       <div className="card" style={{ padding: '24px', marginBottom: '20px' }}>

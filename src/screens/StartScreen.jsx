@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, Heart, AlertCircle, Save, User, Lock, LogIn, UserPlus, Smile } from 'lucide-react';
-import { loginUser, registerUser } from '../utils/storage';
+import { signInWithEmail, signUpWithEmail } from '../utils/auth';
 import lightIcon from '../스터디 핏 아이콘 (밝은버전).png';
 import darkIcon from '../스터디 핏 아이콘 (어두운버전).png';
 
 const StartScreen = ({ onStart }) => {
   const [mode, setMode] = useState('login'); // 'login' | 'signup'
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [nickname, setNickname] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => document.body.classList.contains('dark'));
 
   useEffect(() => {
@@ -29,31 +30,39 @@ const StartScreen = ({ onStart }) => {
     return () => observer.disconnect();
   }, []);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
     setSuccessMsg('');
 
-    if (!username.trim() || !password.trim()) {
-      setError('아이디와 비밀번호를 모두 입력해 주세요.');
+    if (!email.trim() || !password.trim()) {
+      setError('이메일과 비밀번호를 모두 입력해 주세요.');
       return;
     }
 
-    const res = loginUser(username.trim(), password);
+    setIsSubmitting(true);
+    const res = await signInWithEmail({ email: email.trim(), password });
+    setIsSubmitting(false);
+
     if (res.success) {
-      onStart();
+      onStart(res.user);
     } else {
       setError(res.message);
     }
   };
 
-  const handleSignup = (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
     setError('');
     setSuccessMsg('');
 
-    if (!username.trim() || !password.trim() || !confirmPassword.trim() || !nickname.trim()) {
+    if (!email.trim() || !password.trim() || !confirmPassword.trim() || !nickname.trim()) {
       setError('모든 필드를 입력해 주세요.');
+      return;
+    }
+
+    if (!email.includes('@')) {
+      setError('올바른 이메일 주소를 입력해 주세요.');
       return;
     }
 
@@ -62,15 +71,21 @@ const StartScreen = ({ onStart }) => {
       return;
     }
 
-    if (password.length < 4) {
-      setError('비밀번호는 최소 4자 이상이어야 합니다.');
+    if (password.length < 6) {
+      setError('비밀번호는 최소 6자 이상이어야 합니다.');
       return;
     }
 
-    const res = registerUser(username.trim(), password, nickname.trim());
+    setIsSubmitting(true);
+    const res = await signUpWithEmail({ email: email.trim(), password, nickname: nickname.trim() });
+    setIsSubmitting(false);
+
     if (res.success) {
       setSuccessMsg(res.message);
-      // Automatically switch to login after short delay and pre-fill username
+      if (res.session) {
+        onStart(res.user);
+        return;
+      }
       setTimeout(() => {
         setMode('login');
         setPassword('');
@@ -126,16 +141,16 @@ const StartScreen = ({ onStart }) => {
           </h2>
 
           <form onSubmit={mode === 'login' ? handleLogin : handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {/* Username field */}
+            {/* Email field */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', textAlign: 'left' }}>
-              <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)' }}>아이디</label>
+              <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)' }}>이메일</label>
               <div style={{ position: 'relative' }}>
                 <User size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
                 <input
-                  type="text"
-                  placeholder="아이디를 입력하세요"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  type="email"
+                  placeholder="이메일을 입력하세요"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   style={{
                     width: '100%',
                     padding: '12px 14px 12px 40px',
@@ -255,6 +270,7 @@ const StartScreen = ({ onStart }) => {
             {/* Submit Button */}
             <button
               type="submit"
+              disabled={isSubmitting}
               className="btn-primary"
               style={{
                 width: '100%',
@@ -267,18 +283,19 @@ const StartScreen = ({ onStart }) => {
                 justifyContent: 'center',
                 gap: '8px',
                 marginTop: '10px',
-                cursor: 'pointer'
+                cursor: isSubmitting ? 'default' : 'pointer',
+                opacity: isSubmitting ? 0.75 : 1
               }}
             >
               {mode === 'login' ? (
                 <>
                   <LogIn size={18} />
-                  로그인
+                  {isSubmitting ? '로그인 중...' : '로그인'}
                 </>
               ) : (
                 <>
                   <UserPlus size={18} />
-                  회원가입 완료
+                  {isSubmitting ? '가입 중...' : '회원가입 완료'}
                 </>
               )}
             </button>

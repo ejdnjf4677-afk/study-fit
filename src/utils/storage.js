@@ -1,5 +1,5 @@
 // src/utils/storage.js
-import { calculateConcentrationScore, POINTS } from './logic';
+import { POINTS } from './logic';
 
 export const loadData = (key, defaultValue) => {
   try {
@@ -31,37 +31,7 @@ const KEYS = {
   SUBJECTS: 'user_subjects',
   NOTIFICATIONS: 'user_notifications',
   TODOS: 'user_todos',
-  USERS: 'studyfit_users',
-  CURRENT_USER: 'studyfit_current_user',
 };
-
-export const getUsers = () => loadData(KEYS.USERS, {});
-
-export const registerUser = (username, password, nickname) => {
-  const users = getUsers();
-  if (users[username]) {
-    return { success: false, message: '이미 존재하는 아이디입니다.' };
-  }
-  users[username] = { password, nickname: nickname || username };
-  saveData(KEYS.USERS, users);
-  return { success: true, message: '회원가입이 완료되었습니다.' };
-};
-
-export const loginUser = (username, password) => {
-  const users = getUsers();
-  const user = users[username];
-  if (!user || user.password !== password) {
-    return { success: false, message: '아이디 또는 비밀번호가 올바르지 않습니다.' };
-  }
-  saveData(KEYS.CURRENT_USER, { username, nickname: user.nickname || username });
-  return { success: true, message: '로그인에 성공했습니다.' };
-};
-
-export const logoutUser = () => {
-  localStorage.removeItem(KEYS.CURRENT_USER);
-};
-
-export const getCurrentUser = () => loadData(KEYS.CURRENT_USER, null);
 
 export const getStudyRecords = () => loadData(KEYS.RECORDS, []);
 export const getEmotionLogs = () => loadData(KEYS.EMOTIONS, []);

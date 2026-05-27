@@ -26,8 +26,11 @@ const AICoachScreen = () => {
 
     const today = new Date().toLocaleDateString();
     const todayRecords = records.filter(r => new Date(r.timestamp).toLocaleDateString() === today);
+    const todayEmotions = emotions.filter(e => new Date(e.timestamp).toLocaleDateString() === today);
+    const todayFailures = failures.filter(f => new Date(f.timestamp).toLocaleDateString() === today);
     const todayMins = todayRecords.reduce((acc, r) => acc + r.durationMinutes, 0);
-    const avgPauses = todayRecords.length > 0 ? todayRecords.reduce((acc, r) => acc + r.pauseCount, 0) / todayRecords.length : 0;
+    const totalPauses = todayRecords.reduce((acc, r) => acc + (r.pauseCount || 0), 0);
+    const avgPauses = todayRecords.length > 0 ? totalPauses / todayRecords.length : 0;
 
     // Find most studied subject
     const subjectMins = {};
@@ -87,7 +90,11 @@ const AICoachScreen = () => {
     if (todayMins === 0) {
       return "아직 오늘의 공부 기록이 없습니다. 완벽하게 하려는 마음을 내려놓고 딱 10분만 일단 시작해보는 건 어떨까요? 시작이 반입니다!";
     }
-    const score = calculateConcentrationScore(Math.min(100, (todayMins / settings.dailyGoal) * 100), avgPauses);
+    const score = calculateConcentrationScore(Math.min(100, (todayMins / settings.dailyGoal) * 100), totalPauses, {
+      records: todayRecords,
+      emotions: todayEmotions,
+      failures: todayFailures
+    });
     if (score > 85) return `분석 결과 오늘 집중 점수가 ${score}점으로 상당히 높습니다! 이 좋은 흐름을 유지해서, 평소에 미루던 가장 까다로운 과목을 지금 바로 공략해 보세요.`;
     return `오늘 하루 ${todayMins}분 동안 정말 열심히 하셨습니다. 목표 대비 달성률은 ${(todayMins / settings.dailyGoal * 100).toFixed(1)}% 입니다. 조금만 더 힘내서 목표를 채워볼까요?`;
   };
