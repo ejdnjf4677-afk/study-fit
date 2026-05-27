@@ -105,6 +105,10 @@ const StartScreen = ({ onStart }) => {
     { icon: Save, label: '기록 저장', color: '#34C759' },
   ];
 
+  const goForgotPassword = () => {
+    window.dispatchEvent(new CustomEvent('studyfit:navigate', { detail: { screen: 'forgot-password' } }));
+  };
+
   return (
     <div className="screen-container animate-fade-in" style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '24px' }}>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', width: '100%', maxWidth: '360px', margin: '0 auto' }}>
@@ -304,29 +308,25 @@ const StartScreen = ({ onStart }) => {
           {/* Switch Mode Link */}
           <div style={{ marginTop: '20px', textAlign: 'center' }}>
             {mode === 'login' ? (
-              <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                계정이 없으신가요?{' '}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMode('signup');
-                    setError('');
-                    setSuccessMsg('');
-                  }}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--primary-color)',
-                    fontWeight: '700',
-                    cursor: 'pointer',
-                    padding: 0,
-                    fontSize: '13px',
-                    textDecoration: 'underline'
-                  }}
-                >
-                  회원가입
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center' }}>
+                <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                  계정이 없으신가요?{' '}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode('signup');
+                      setError('');
+                      setSuccessMsg('');
+                    }}
+                    style={linkButtonStyle}
+                  >
+                    회원가입
+                  </button>
+                </span>
+                <button type="button" onClick={goForgotPassword} style={linkButtonStyle}>
+                  비밀번호를 잊으셨나요?
                 </button>
-              </span>
+              </div>
             ) : (
               <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
                 이미 계정이 있으신가요?{' '}
@@ -337,16 +337,7 @@ const StartScreen = ({ onStart }) => {
                     setError('');
                     setSuccessMsg('');
                   }}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--primary-color)',
-                    fontWeight: '700',
-                    cursor: 'pointer',
-                    padding: 0,
-                    fontSize: '13px',
-                    textDecoration: 'underline'
-                  }}
+                  style={linkButtonStyle}
                 >
                   로그인
                 </button>
@@ -368,6 +359,17 @@ const StartScreen = ({ onStart }) => {
       </div>
     </div>
   );
+};
+
+const linkButtonStyle = {
+  background: 'none',
+  border: 'none',
+  color: 'var(--primary-color)',
+  fontWeight: '700',
+  cursor: 'pointer',
+  padding: 0,
+  fontSize: '13px',
+  textDecoration: 'underline',
 };
 
 export default StartScreen;

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import StartScreen from './screens/StartScreen';
+import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
+import ResetPasswordScreen from './screens/ResetPasswordScreen';
 import HomeScreen from './screens/HomeScreen';
 import TimerScreen from './screens/TimerScreen';
 import RecordsScreen from './screens/RecordsScreen';
@@ -36,8 +38,11 @@ function App() {
       // Session Check
       localStorage.removeItem('studyfit_users');
       localStorage.removeItem('studyfit_current_user');
+      const isResetPasswordPath = window.location.pathname === '/reset-password';
       const session = await getCurrentSession();
-      if (session?.user) {
+      if (isResetPasswordPath) {
+        setScreen('reset-password');
+      } else if (session?.user) {
         setCurrentUser(session.user);
         setScreen('home');
       } else {
@@ -55,11 +60,24 @@ function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       const user = session?.user || null;
       setCurrentUser(user);
+      if (event === 'PASSWORD_RECOVERY') {
+        setScreen('reset-password');
+        return;
+      }
       if (event === 'SIGNED_IN') setScreen('home');
       if (event === 'SIGNED_OUT') setScreen('start');
     });
 
-    return () => subscription.unsubscribe();
+    const handleNavigate = (event) => {
+      if (event.detail?.screen) setScreen(event.detail.screen);
+    };
+
+    window.addEventListener('studyfit:navigate', handleNavigate);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('studyfit:navigate', handleNavigate);
+    };
   }, []);
 
   const handleTimerFinish = (sessionData) => {
@@ -71,6 +89,10 @@ function App() {
     switch (screen) {
       case 'start':
         return <StartScreen onStart={(user) => { setCurrentUser(user); setScreen('home'); }} />;
+      case 'forgot-password':
+        return <ForgotPasswordScreen onBack={() => setScreen('start')} />;
+      case 'reset-password':
+        return <ResetPasswordScreen onDone={() => setScreen('start')} />;
       case 'home':
         return <HomeScreen user={currentUser} onStartStudy={() => setScreen('timer')} />;
       case 'timer':
@@ -104,7 +126,9 @@ function App() {
     <>
       {renderScreen()}
       {screen !== 'start' &&
-        screen !== 'timer' && (
+        screen !== 'timer' &&
+        screen !== 'forgot-password' &&
+        screen !== 'reset-password' && (
           <BottomNav setScreen={setScreen} activeScreen={screen} />
         )}
     </>

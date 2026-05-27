@@ -49,6 +49,34 @@ export const signOut = async () => {
   return { success: true };
 };
 
+export const sendPasswordResetEmail = async ({ email, redirectTo }) => {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo,
+  });
+
+  if (error) {
+    return { success: false, message: getAuthErrorMessage(error.message) };
+  }
+
+  return {
+    success: true,
+    message: '비밀번호 재설정 메일을 보냈습니다. 이메일을 확인해주세요.',
+  };
+};
+
+export const updatePassword = async (password) => {
+  const { error } = await supabase.auth.updateUser({ password });
+
+  if (error) {
+    return { success: false, message: getAuthErrorMessage(error.message) };
+  }
+
+  return {
+    success: true,
+    message: '비밀번호가 변경되었습니다. 다시 로그인해주세요.',
+  };
+};
+
 export const getCurrentSession = async () => {
   const { data, error } = await supabase.auth.getSession();
   if (error) return null;
