@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Gift, PlayCircle, Sparkles, Crown, CheckCircle, AlertCircle } from 'lucide-react';
-import { getUserPoints, getLastEarnedPoints, addPoints, saveData } from '../utils/storage';
+import { getUserPoints, addPoints, loadData, saveData } from '../utils/storage';
 
 const rewards = [
   { name: '스타벅스 아메리카노 Tall', cost: 15000, color: '#00704A' },
@@ -9,27 +9,55 @@ const rewards = [
   { name: '문화상품권 10,000원', cost: 40000, color: '#F2994A' },
 ];
 
+const AD_COOLDOWN_MS = 30 * 60 * 1000;
+const AD_LAST_WATCHED_KEY = 'ad_last_watched_at';
+
+const getRemainingAdTime = () => {
+  const lastWatchedAt = loadData(AD_LAST_WATCHED_KEY, null);
+  if (!lastWatchedAt) return 0;
+
+  const elapsed = Date.now() - new Date(lastWatchedAt).getTime();
+  return Math.max(0, AD_COOLDOWN_MS - elapsed);
+};
+
+const formatRemainingTime = (milliseconds) => {
+  const totalSeconds = Math.ceil(milliseconds / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+};
+
 const RewardScreen = () => {
   const [points, setPoints] = useState(getUserPoints());
-  const [adWatched, setAdWatched] = useState(false);
+  const [adRemainingMs, setAdRemainingMs] = useState(getRemainingAdTime());
   // { title, message, type: 'success'|'info'|'error' }
   const [infoModal, setInfoModal] = useState(null);
 
   useEffect(() => {
     setPoints(getUserPoints());
+
+    const timer = setInterval(() => {
+      setAdRemainingMs(getRemainingAdTime());
+    }, 1000);
+
+    return () => clearInterval(timer);
   }, []);
 
   const showModal = (title, message, type = 'info') =>
     setInfoModal({ title, message, type });
 
   const handleAdWatch = () => {
-    if (adWatched) {
-      showModal('알림', '이미 광고 보상을 받았습니다.', 'info');
+    const remaining = getRemainingAdTime();
+    if (remaining > 0) {
+      setAdRemainingMs(remaining);
+      showModal('잠시 후 가능', `광고 보상은 30분마다 받을 수 있어요.\n남은 시간: ${formatRemainingTime(remaining)}`, 'info');
       return;
     }
+
     addPoints(10);
+    saveData(AD_LAST_WATCHED_KEY, new Date().toISOString());
     setPoints(getUserPoints());
-    setAdWatched(true);
+    setAdRemainingMs(AD_COOLDOWN_MS);
     showModal('보상 획득! 🎉', '광고 시청 완료! 10P를 획득했습니다.', 'success');
   };
 
@@ -67,6 +95,7 @@ const RewardScreen = () => {
     error:   '#FF3B30',
     info:    'var(--primary-color)',
   };
+  const isAdCoolingDown = adRemainingMs > 0;
 
   return (
     <div className="screen-container animate-fade-in" style={{ paddingBottom: '120px' }}>
@@ -105,14 +134,21 @@ const RewardScreen = () => {
           style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center',
             padding: '20px 16px', gap: '12px',
-            opacity: adWatched ? 0.6 : 1,
+            opacity: isAdCoolingDown ? 0.65 : 1,
             background: 'var(--secondary-bg)',
             border: '2px solid var(--tertiary-bg)',
             boxShadow: 'var(--card-shadow)'
           }}
         >
-          <PlayCircle size={28} color="var(--primary-color)" />
-          <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)' }}>광고 시청 +10P</span>
+          <PlayCircle size={28} color={isAdCoolingDown ? 'var(--text-tertiary)' : 'var(--primary-color)'} />
+          <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)' }}>
+            {isAdCoolingDown ? '광고 대기 중' : '광고 시청 +10P'}
+          </span>
+          {isAdCoolingDown && (
+            <span style={{ fontSize: '12px', fontWeight: '800', color: 'var(--primary-color)', background: 'var(--primary-light)', padding: '5px 9px', borderRadius: '10px' }}>
+              남은 시간 {formatRemainingTime(adRemainingMs)}
+            </span>
+          )}
         </button>
         <button
           className="btn-primary"

@@ -25,6 +25,8 @@ export const getDayData = (dateKey) => {
   return data[dateKey] || { todos: [], schedules: [] };
 };
 
+export const getTodosForDate = (dateKey) => getDayData(dateKey).todos || [];
+
 export const saveDayData = (dateKey, dayData) => {
   const data = getCalendarData();
   saveCalendarData({
@@ -34,6 +36,11 @@ export const saveDayData = (dateKey, dayData) => {
       schedules: dayData.schedules || [],
     },
   });
+};
+
+export const saveTodosForDate = (dateKey, todos) => {
+  const dayData = getDayData(dateKey);
+  saveDayData(dateKey, { ...dayData, todos });
 };
 
 export const createCalendarItemId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;

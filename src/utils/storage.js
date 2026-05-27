@@ -30,7 +30,6 @@ const KEYS = {
   STREAK: 'study_streak',
   SUBJECTS: 'user_subjects',
   NOTIFICATIONS: 'user_notifications',
-  TODOS: 'user_todos',
 };
 
 export const getStudyRecords = () => loadData(KEYS.RECORDS, []);
@@ -42,12 +41,6 @@ export const getAppSettings = () => loadData(KEYS.SETTINGS, { dailyGoal: 240, is
 export const getStreak = () => loadData(KEYS.STREAK, { count: 0, lastDate: null });
 export const getSubjects = () => loadData(KEYS.SUBJECTS, ['수학', '영어', '국어', '과학', '사회']);
 export const getNotifications = () => loadData(KEYS.NOTIFICATIONS, { studyStart: true, breakTime: true, goalReached: true });
-export const getTodos = () => loadData(KEYS.TODOS, [
-  { id: 1, text: '수학 문제 풀이', completed: false },
-  { id: 2, text: '영어 단어 암기', completed: false },
-  { id: 3, text: '네트워크 강의 수강', completed: false }
-]);
-
 export const saveStudyRecord = (record) => {
   const records = getStudyRecords();
   const newRecord = { ...record, id: Date.now(), timestamp: new Date().toISOString() };
@@ -83,7 +76,6 @@ export const saveFailureLog = (log) => {
 export const saveSubjects = (subjects) => saveData(KEYS.SUBJECTS, subjects);
 export const saveNotifications = (notifs) => saveData(KEYS.NOTIFICATIONS, notifs);
 export const saveAppSettings = (settings) => saveData(KEYS.SETTINGS, settings);
-export const saveTodos = (todos) => saveData(KEYS.TODOS, todos);
 
 export const deleteRecord = (key, id) => {
   const data = loadData(key, []);

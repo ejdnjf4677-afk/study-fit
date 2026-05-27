@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { Bell, Target, BookOpen, Trash2, Info, RefreshCcw, ChevronRight, CheckCircle2, ListTodo, Moon, Tablet, LogOut } from 'lucide-react';
-import { getAppSettings, saveAppSettings, getSubjects, saveSubjects, getNotifications, saveNotifications, clearAllData, getTodos, saveTodos } from '../utils/storage';
+import { getAppSettings, saveAppSettings, getSubjects, saveSubjects, getNotifications, saveNotifications, clearAllData } from '../utils/storage';
+import { createCalendarItemId, getDateKey, getTodosForDate, saveTodosForDate } from '../utils/calendarStorage';
 import { signOut } from '../utils/auth';
 
 const SettingsScreen = ({ user, onLogout }) => {
   const [settings, setSettings] = useState(getAppSettings());
   const [subjects, setSubjects] = useState(getSubjects());
   const [notifications, setNotifications] = useState(getNotifications());
-  const [todos, setTodos] = useState(getTodos());
+  const todayKey = getDateKey(new Date());
+  const [todos, setTodos] = useState(() => getTodosForDate(todayKey));
   const [newSubject, setNewSubject] = useState('');
   const [newTodo, setNewTodo] = useState('');
   const [confirmModal, setConfirmModal] = useState(null); // { type: 'logout' | 'reset', message }
@@ -59,9 +61,9 @@ const SettingsScreen = ({ user, onLogout }) => {
   // To-Do Logic
   const addTodo = () => {
     if (newTodo.trim()) {
-      const updated = [...todos, { id: Date.now(), text: newTodo.trim(), completed: false }];
+      const updated = [...todos, { id: createCalendarItemId(), text: newTodo.trim(), completed: false }];
       setTodos(updated);
-      saveTodos(updated);
+      saveTodosForDate(todayKey, updated);
       setNewTodo('');
     }
   };
@@ -69,13 +71,13 @@ const SettingsScreen = ({ user, onLogout }) => {
   const toggleTodo = (id) => {
     const updated = todos.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
     setTodos(updated);
-    saveTodos(updated);
+    saveTodosForDate(todayKey, updated);
   };
 
   const removeTodo = (id) => {
     const updated = todos.filter(t => t.id !== id);
     setTodos(updated);
-    saveTodos(updated);
+    saveTodosForDate(todayKey, updated);
   };
 
   return (
@@ -135,16 +137,16 @@ const SettingsScreen = ({ user, onLogout }) => {
         </div>
       </div>
 
-      {/* 오늘 할 일 관리 */}
+      {/* 오늘 To-do 관리 */}
       <div className="card">
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
           <ListTodo size={20} color="var(--primary-color)" />
-          <h3 style={{ fontSize: '16px', fontWeight: 'bold' }}>오늘 할 일 관리</h3>
+          <h3 style={{ fontSize: '16px', fontWeight: 'bold' }}>오늘 To-do 관리</h3>
         </div>
         <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
           <input
             type="text"
-            placeholder="할 일 추가하기..."
+            placeholder="To-do 추가하기..."
             value={newTodo}
             onChange={(e) => setNewTodo(e.target.value)}
             style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid #E5E5EA' }}
@@ -169,7 +171,7 @@ const SettingsScreen = ({ user, onLogout }) => {
               </div>
               <Trash2 size={16} color="#FF3B30" style={{ cursor: 'pointer' }} onClick={() => removeTodo(t.id)} />
             </div>
-          )) : <p style={{ fontSize: '13px', color: '#8E8E93', textAlign: 'center' }}>등록된 할 일이 없습니다.</p>}
+          )) : <p style={{ fontSize: '13px', color: '#8E8E93', textAlign: 'center' }}>등록된 To-do가 없습니다.</p>}
         </div>
       </div>
 

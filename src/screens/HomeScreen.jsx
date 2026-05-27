@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { CalendarCheck, Clock, Play, CheckCircle2, Circle, TrendingUp, Sparkles, ChevronRight } from 'lucide-react';
-import { getStudyRecords, getEmotionLogs, getFailureLogs, getUserPoints, getAppSettings, getStreak, getTodos, saveTodos } from '../utils/storage';
+import { CalendarCheck, Clock, Play, CheckCircle2, Circle, TrendingUp, Sparkles } from 'lucide-react';
+import { getStudyRecords, getEmotionLogs, getFailureLogs, getUserPoints, getAppSettings, getStreak } from '../utils/storage';
 import { calculateConcentrationScore } from '../utils/logic';
+import { getDateKey, getTodosForDate, saveTodosForDate } from '../utils/calendarStorage';
 
 const HomeScreen = ({ user, onStartStudy }) => {
   const [nickname, setNickname] = useState('사용자');
@@ -12,7 +13,8 @@ const HomeScreen = ({ user, onStartStudy }) => {
     streak: 0,
     points: 0
   });
-  const [todos, setTodos] = useState(getTodos());
+  const todayKey = getDateKey(new Date());
+  const [todos, setTodos] = useState(() => getTodosForDate(todayKey));
 
   useEffect(() => {
     const records = getStudyRecords();
@@ -48,17 +50,17 @@ const HomeScreen = ({ user, onStartStudy }) => {
       streak: userStreak.count,
       points: userPoints
     });
-    setTodos(getTodos());
+    setTodos(getTodosForDate(todayKey));
 
     if (user) {
       setNickname(user.user_metadata?.nickname || user.email?.split('@')[0] || '사용자');
     }
-  }, [user]);
+  }, [user, todayKey]);
 
   const toggleTodo = (id) => {
     const updated = todos.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
     setTodos(updated);
-    saveTodos(updated);
+    saveTodosForDate(todayKey, updated);
   };
 
   return (
@@ -127,8 +129,7 @@ const HomeScreen = ({ user, onStartStudy }) => {
 
       <div className="card" style={{ padding: '24px 20px', marginBottom: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h3 className="card-title" style={{ margin: 0 }}>오늘 할 일</h3>
-          <ChevronRight size={20} color="var(--text-tertiary)" />
+          <h3 className="card-title" style={{ margin: 0 }}>오늘 To-do</h3>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -155,7 +156,7 @@ const HomeScreen = ({ user, onStartStudy }) => {
             </div>
           )) : (
             <div style={{ padding: '20px 0', textAlign: 'center' }}>
-              <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', fontWeight: '500' }}>할 일이 없습니다. 설정에서 추가해주세요!</p>
+              <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', fontWeight: '500' }}>오늘 등록된 To-do가 없습니다.</p>
             </div>
           )}
         </div>

@@ -120,7 +120,7 @@ const CalendarScreen = () => {
     <div className="screen-container animate-fade-in" style={{ paddingBottom: '130px' }}>
       <header style={{ paddingTop: '16px', marginBottom: '20px' }}>
         <h2 style={{ fontSize: '24px', fontWeight: '800', letterSpacing: '-0.5px', marginBottom: '4px' }}>캘린더</h2>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500' }}>할 일과 일정을 날짜별로 정리해보세요</p>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500' }}>To-do와 일정을 날짜별로 정리해보세요</p>
       </header>
 
       <div className="card" style={{ padding: '20px', marginBottom: '18px' }}>
@@ -195,7 +195,7 @@ const CalendarScreen = () => {
       </div>
 
       <section className="card" style={{ padding: '20px', marginBottom: '18px' }}>
-        <SectionTitle icon={CheckSquare} title="투두" />
+        <SectionTitle icon={CheckSquare} title="To-do" />
         <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
           <input
             value={todoForm.text}
@@ -203,11 +203,11 @@ const CalendarScreen = () => {
             placeholder="예: 수학 과제하기"
             style={inputStyle}
           />
-          <button onClick={saveTodo} aria-label={editingTodoId ? '투두 수정' : '투두 추가'} style={smallPrimaryButtonStyle}>
+          <button onClick={saveTodo} aria-label={editingTodoId ? 'To-do 수정' : 'To-do 추가'} style={smallPrimaryButtonStyle}>
             {editingTodoId ? <Save size={18} /> : <Plus size={18} />}
           </button>
           {editingTodoId && (
-            <button onClick={() => { setEditingTodoId(null); setTodoForm(emptyTodoForm); }} aria-label="투두 수정 취소" style={iconButtonStyle}>
+            <button onClick={() => { setEditingTodoId(null); setTodoForm(emptyTodoForm); }} aria-label="To-do 수정 취소" style={iconButtonStyle}>
               <X size={18} />
             </button>
           )}
@@ -220,10 +220,10 @@ const CalendarScreen = () => {
                 <CheckSquare size={18} color={todo.completed ? 'var(--primary-color)' : 'var(--text-tertiary)'} />
               </button>
               <span style={{ flex: 1, fontSize: '14px', color: todo.completed ? 'var(--text-tertiary)' : 'var(--text-primary)', textDecoration: todo.completed ? 'line-through' : 'none', fontWeight: '600' }}>{todo.text}</span>
-              <button onClick={() => startEditTodo(todo)} aria-label="투두 수정" style={plainIconStyle}><Edit3 size={16} /></button>
-              <button onClick={() => deleteTodo(todo.id)} aria-label="투두 삭제" style={plainIconStyle}><Trash2 size={16} color="var(--error-color)" /></button>
+              <button onClick={() => startEditTodo(todo)} aria-label="To-do 수정" style={plainIconStyle}><Edit3 size={16} /></button>
+              <button onClick={() => deleteTodo(todo.id)} aria-label="To-do 삭제" style={plainIconStyle}><Trash2 size={16} color="var(--error-color)" /></button>
             </div>
-          )) : <EmptyState text="아직 등록된 투두가 없습니다." />}
+          )) : <EmptyState text="아직 등록된 To-do가 없습니다." />}
         </div>
       </section>
 
