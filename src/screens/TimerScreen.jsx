@@ -157,11 +157,11 @@ const PostSessionModal = ({ sessionData, onDone }) => {
             disabled={!selectedEmotion || feltFailure === null}
             style={{
               width: '100%', padding: '16px', borderRadius: '16px', border: 'none',
-              background: selectedEmotion && feltFailure !== null ? 'linear-gradient(135deg, var(--primary-color), #56CCF2)' : 'var(--tertiary-bg)',
+              background: selectedEmotion && feltFailure !== null ? 'linear-gradient(135deg, rgba(var(--primary-rgb), 0.9), rgba(var(--primary-rgb), 0.72))' : 'var(--tertiary-bg)',
               color: selectedEmotion && feltFailure !== null ? 'white' : 'var(--text-tertiary)',
               fontSize: '16px', fontWeight: '700', cursor: selectedEmotion && feltFailure !== null ? 'pointer' : 'default',
               transition: 'all 0.3s',
-              boxShadow: selectedEmotion && feltFailure !== null ? '0 8px 16px rgba(47,128,237,0.25)' : 'none'
+              boxShadow: selectedEmotion && feltFailure !== null ? '0 8px 16px rgba(var(--primary-rgb), 0.18)' : 'none'
             }}
           >
             {feltFailure ? '다음 →' : '완료 🎉'}
@@ -383,8 +383,8 @@ const TimerScreen = ({ onFinish, onBack }) => {
             <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
               <defs>
                 <linearGradient id="timerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#2F80ED" />
-                  <stop offset="100%" stopColor="#56CCF2" />
+                  <stop offset="0%" stopColor={`rgba(var(--primary-rgb), 0.9)`} />
+                  <stop offset="100%" stopColor={`rgba(var(--primary-rgb), 0.62)`} />
                 </linearGradient>
               </defs>
               <circle cx="140" cy="140" r="130" fill="none" stroke="var(--tertiary-bg)" strokeWidth="12" />
@@ -438,7 +438,7 @@ const TimerScreen = ({ onFinish, onBack }) => {
               background: isActive ? 'var(--warning-color)' : 'var(--primary-color)',
               color: 'white', border: 'none', borderRadius: '20px', padding: '18px',
               fontSize: '18px', fontWeight: '700', cursor: 'pointer',
-              boxShadow: isActive ? '0 8px 16px rgba(242,153,74,0.2)' : '0 8px 16px rgba(47,128,237,0.2)',
+              boxShadow: isActive ? '0 8px 16px rgba(242,153,74,0.2)' : '0 8px 16px rgba(var(--primary-rgb), 0.14)',
               transition: 'all 0.3s'
             }}
           >

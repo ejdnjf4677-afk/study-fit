@@ -1,8 +1,47 @@
-import React, { useState } from 'react';
-import { Bell, Target, BookOpen, Trash2, Info, RefreshCcw, ChevronRight, CheckCircle2, ListTodo, Moon, Tablet, LogOut } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import {
+  Bell,
+  BookOpen,
+  Check,
+  CheckCircle2,
+  ChevronRight,
+  HelpCircle,
+  Info,
+  ListTodo,
+  LogOut,
+  Moon,
+  Palette,
+  RefreshCcw,
+  Target,
+  Trash2,
+} from 'lucide-react';
 import { getAppSettings, saveAppSettings, getSubjects, saveSubjects, getNotifications, saveNotifications, clearAllData } from '../utils/storage';
 import { createCalendarItemId, getDateKey, getTodosForDate, saveTodosForDate } from '../utils/calendarStorage';
 import { signOut } from '../utils/auth';
+import { ACCENT_OPTIONS, applyAccentColor, loadUserAccent, saveUserAccent } from '../utils/themeSettings';
+
+const helpItems = [
+  { title: '홈', body: '오늘 공부 시간, 집중력 점수, 오늘 To-do를 한눈에 확인해요.' },
+  { title: '타이머', body: '과목을 고르고 집중 시간을 기록해 공부 흐름을 남겨요.' },
+  { title: '기록', body: '공부, 감정, 실패 기록을 남겨 나의 패턴을 파악해요.' },
+  { title: '통계', body: '공부량, 감정, 실패 원인, 캘린더 히트맵을 함께 확인해요.' },
+  { title: '캘린더', body: '날짜별 To-do와 일정을 관리하고 오늘 할 일과 연결해요.' },
+  { title: 'AI 코치', body: '집중, 루틴, 시험, 실패 원인 같은 공부 고민을 짧게 상담해요.' },
+  { title: '설정', body: '목표 시간, 과목, 알림, 테마 색상, 계정 정보를 관리해요.' },
+];
+
+const dividerStyle = { height: '1px', background: 'var(--tertiary-bg)', margin: '0 16px' };
+const menuButtonStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  width: '100%',
+  padding: '16px',
+  cursor: 'pointer',
+  border: 'none',
+  background: 'transparent',
+  color: 'var(--text-primary)',
+  textAlign: 'left',
+};
 
 const SettingsScreen = ({ user, onLogout }) => {
   const [settings, setSettings] = useState(getAppSettings());
@@ -12,11 +51,31 @@ const SettingsScreen = ({ user, onLogout }) => {
   const [todos, setTodos] = useState(() => getTodosForDate(todayKey));
   const [newSubject, setNewSubject] = useState('');
   const [newTodo, setNewTodo] = useState('');
-  const [confirmModal, setConfirmModal] = useState(null); // { type: 'logout' | 'reset', message }
-  const [infoModal, setInfoModal] = useState(null);       // { title, message }
+  const [confirmModal, setConfirmModal] = useState(null);
+  const [infoModal, setInfoModal] = useState(null);
+  const [showHelp, setShowHelp] = useState(false);
+  const [selectedAccent, setSelectedAccent] = useState('sky');
+  const [themeSaving, setThemeSaving] = useState(false);
+  const [themeMessage, setThemeMessage] = useState('');
+
+  useEffect(() => {
+    let active = true;
+
+    const syncAccent = async () => {
+      const accentId = await loadUserAccent(user?.id);
+      if (!active) return;
+      setSelectedAccent(accentId);
+      applyAccentColor(accentId);
+    };
+
+    syncAccent();
+    return () => {
+      active = false;
+    };
+  }, [user?.id]);
 
   const handleGoalChange = (e) => {
-    const newGoal = parseInt(e.target.value);
+    const newGoal = parseInt(e.target.value, 10);
     const updated = { ...settings, dailyGoal: newGoal };
     setSettings(updated);
     saveAppSettings(updated);
@@ -31,8 +90,8 @@ const SettingsScreen = ({ user, onLogout }) => {
     }
   };
 
-  const removeSubject = (subj) => {
-    const updated = subjects.filter(s => s !== subj);
+  const removeSubject = (subject) => {
+    const updated = subjects.filter((item) => item !== subject);
     setSubjects(updated);
     saveSubjects(updated);
   };
@@ -43,8 +102,27 @@ const SettingsScreen = ({ user, onLogout }) => {
     saveNotifications(updated);
   };
 
+  const handleAccentSelect = async (accentId) => {
+    setSelectedAccent(accentId);
+    applyAccentColor(accentId);
+    setThemeSaving(true);
+    setThemeMessage('');
+
+    const result = await saveUserAccent(user?.id, accentId);
+    setThemeSaving(false);
+    setThemeMessage(
+      result.ok
+        ? '색상 설정을 계정에 저장했어요.'
+        : 'Supabase 저장이 안 되어 이 기기에서 임시로 적용했어요.',
+    );
+  };
+
   const handleReset = () => {
-    setConfirmModal({ type: 'reset', message: '정말 모든 데이터를 초기화하시겠습니까?\n이 작업은 되돌릴 수 없습니다.' });
+    setConfirmModal({
+      type: 'reset',
+      title: '데이터 초기화',
+      message: '정말 모든 데이터를 초기화할까요?\n이 작업은 되돌릴 수 없습니다.',
+    });
   };
 
   const handleConfirm = async () => {
@@ -52,13 +130,15 @@ const SettingsScreen = ({ user, onLogout }) => {
       await signOut();
       setConfirmModal(null);
       if (onLogout) onLogout();
-    } else if (confirmModal?.type === 'reset') {
+      return;
+    }
+
+    if (confirmModal?.type === 'reset') {
       setConfirmModal(null);
       clearAllData();
     }
   };
 
-  // To-Do Logic
   const addTodo = () => {
     if (newTodo.trim()) {
       const updated = [...todos, { id: createCalendarItemId(), text: newTodo.trim(), completed: false }];
@@ -69,13 +149,15 @@ const SettingsScreen = ({ user, onLogout }) => {
   };
 
   const toggleTodo = (id) => {
-    const updated = todos.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
+    const updated = todos.map((todo) => (
+      todo.id === id ? { ...todo, completed: !todo.completed } : todo
+    ));
     setTodos(updated);
     saveTodosForDate(todayKey, updated);
   };
 
   const removeTodo = (id) => {
-    const updated = todos.filter(t => t.id !== id);
+    const updated = todos.filter((todo) => todo.id !== id);
     setTodos(updated);
     saveTodosForDate(todayKey, updated);
   };
@@ -84,7 +166,6 @@ const SettingsScreen = ({ user, onLogout }) => {
     <div className="screen-container" style={{ paddingBottom: '140px' }}>
       <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '24px' }}>설정</h2>
 
-      {/* 목표 설정 */}
       <div className="card">
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
           <Target size={20} color="var(--primary-color)" />
@@ -93,16 +174,19 @@ const SettingsScreen = ({ user, onLogout }) => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <input
             type="range"
-            min="30" max="600" step="30"
+            min="30"
+            max="600"
+            step="30"
             value={settings.dailyGoal}
             onChange={handleGoalChange}
             style={{ flex: 1, accentColor: 'var(--primary-color)' }}
           />
-          <span style={{ fontWeight: '600', width: '60px' }}>{Math.floor(settings.dailyGoal / 60)}시간 {settings.dailyGoal % 60}분</span>
+          <span style={{ fontWeight: '600', width: '72px', textAlign: 'right' }}>
+            {Math.floor(settings.dailyGoal / 60)}시간 {settings.dailyGoal % 60}분
+          </span>
         </div>
       </div>
 
-      {/* 과목 관리 */}
       <div className="card">
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
           <BookOpen size={20} color="var(--primary-color)" />
@@ -114,30 +198,32 @@ const SettingsScreen = ({ user, onLogout }) => {
             placeholder="새 과목 입력"
             value={newSubject}
             onChange={(e) => setNewSubject(e.target.value)}
-            style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid #E5E5EA' }}
+            style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--tertiary-bg)', background: 'var(--secondary-bg)', color: 'var(--text-primary)' }}
           />
           <button onClick={addSubject} className="btn-primary" style={{ width: 'auto', padding: '8px 16px' }}>추가</button>
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-          {subjects.map(s => (
-            <div key={s} style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              background: 'var(--tertiary-bg)',
-              color: 'var(--text-primary)',
-              padding: '4px 10px',
-              borderRadius: '20px',
-              fontSize: '13px'
-            }}>
-              {s}
-              <Trash2 size={14} color="#FF3B30" style={{ cursor: 'pointer' }} onClick={() => removeSubject(s)} />
+          {subjects.map((subject) => (
+            <div
+              key={subject}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                background: 'var(--tertiary-bg)',
+                color: 'var(--text-primary)',
+                padding: '4px 10px',
+                borderRadius: '20px',
+                fontSize: '13px',
+              }}
+            >
+              {subject}
+              <Trash2 size={14} color="#FF3B30" style={{ cursor: 'pointer' }} onClick={() => removeSubject(subject)} />
             </div>
           ))}
         </div>
       </div>
 
-      {/* 오늘 To-do 관리 */}
       <div className="card">
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
           <ListTodo size={20} color="var(--primary-color)" />
@@ -149,51 +235,55 @@ const SettingsScreen = ({ user, onLogout }) => {
             placeholder="To-do 추가하기..."
             value={newTodo}
             onChange={(e) => setNewTodo(e.target.value)}
-            style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid #E5E5EA' }}
+            style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--tertiary-bg)', background: 'var(--secondary-bg)', color: 'var(--text-primary)' }}
           />
           <button onClick={addTodo} className="btn-primary" style={{ width: 'auto', padding: '8px 16px' }}>추가</button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {todos.length > 0 ? todos.map(t => (
-            <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div
-                onClick={() => toggleTodo(t.id)}
-                style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}
+          {todos.length > 0 ? todos.map((todo) => (
+            <div key={todo.id} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <button
+                type="button"
+                onClick={() => toggleTodo(todo.id)}
+                style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', flex: 1, border: 'none', background: 'transparent', padding: 0, textAlign: 'left' }}
               >
-                <CheckCircle2 size={20} color={t.completed ? 'var(--primary-color)' : '#E5E5EA'} />
-                <span style={{
-                  fontSize: '14px',
-                  color: t.completed ? 'var(--text-secondary)' : 'var(--text-primary)',
-                  textDecoration: t.completed ? 'line-through' : 'none'
-                }}>
-                  {t.text}
+                <CheckCircle2 size={20} color={todo.completed ? 'var(--primary-color)' : '#E5E5EA'} />
+                <span
+                  style={{
+                    fontSize: '14px',
+                    color: todo.completed ? 'var(--text-secondary)' : 'var(--text-primary)',
+                    textDecoration: todo.completed ? 'line-through' : 'none',
+                  }}
+                >
+                  {todo.text}
                 </span>
-              </div>
-              <Trash2 size={16} color="#FF3B30" style={{ cursor: 'pointer' }} onClick={() => removeTodo(t.id)} />
+              </button>
+              <Trash2 size={16} color="#FF3B30" style={{ cursor: 'pointer' }} onClick={() => removeTodo(todo.id)} />
             </div>
-          )) : <p style={{ fontSize: '13px', color: '#8E8E93', textAlign: 'center' }}>등록된 To-do가 없습니다.</p>}
+          )) : (
+            <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', textAlign: 'center' }}>
+              등록된 To-do가 없습니다.
+            </p>
+          )}
         </div>
       </div>
 
-      {/* 테마 설정 */}
       <div className="card">
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
           <Moon size={20} color="var(--primary-color)" />
           <h3 style={{ fontSize: '16px', fontWeight: 'bold' }}>테마 설정</h3>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: '14px' }}>어두운 테마 (Dark Mode)</span>
-          <div
+          <span style={{ fontSize: '14px' }}>다크 모드</span>
+          <button
+            type="button"
+            aria-label="다크 모드 전환"
             onClick={() => {
               const newTheme = settings.theme === 'dark' ? 'light' : 'dark';
               const updated = { ...settings, theme: newTheme };
               setSettings(updated);
               saveAppSettings(updated);
-              if (newTheme === 'dark') {
-                document.body.classList.add('dark');
-              } else {
-                document.body.classList.remove('dark');
-              }
+              document.body.classList.toggle('dark', newTheme === 'dark');
             }}
             style={{
               width: '44px',
@@ -202,24 +292,76 @@ const SettingsScreen = ({ user, onLogout }) => {
               background: settings.theme === 'dark' ? 'var(--primary-color)' : '#E5E5EA',
               position: 'relative',
               cursor: 'pointer',
-              transition: 'background 0.3s'
+              border: 'none',
+              padding: 0,
             }}
           >
-            <div style={{
-              width: '20px',
-              height: '20px',
-              borderRadius: '10px',
-              background: 'white',
-              position: 'absolute',
-              top: '2px',
-              left: settings.theme === 'dark' ? '22px' : '2px',
-              transition: 'left 0.3s'
-            }} />
-          </div>
+            <span
+              style={{
+                width: '20px',
+                height: '20px',
+                borderRadius: '10px',
+                background: 'white',
+                position: 'absolute',
+                top: '2px',
+                left: settings.theme === 'dark' ? '22px' : '2px',
+                transition: 'left 0.3s',
+              }}
+            />
+          </button>
         </div>
       </div>
 
-      {/* 알림 설정 */}
+      <div className="card">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+          <Palette size={20} color="var(--primary-color)" />
+          <h3 style={{ fontSize: '16px', fontWeight: 'bold' }}>포인트 색상 변경</h3>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
+          {ACCENT_OPTIONS.map((option) => {
+            const selected = selectedAccent === option.id;
+            return (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => handleAccentSelect(option.id)}
+                aria-label={`${option.label} 선택`}
+                title={option.label}
+                style={{
+                  aspectRatio: '1',
+                  borderRadius: '16px',
+                  border: selected ? `3px solid ${option.color}` : '1px solid var(--tertiary-bg)',
+                  background: option.light,
+                  color: option.color,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  boxShadow: selected ? `0 8px 18px ${option.color}33` : 'none',
+                }}
+              >
+                <span
+                  style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '50%',
+                    background: option.color,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {selected && <Check size={15} color="white" />}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <p style={{ marginTop: '12px', fontSize: '12px', color: 'var(--text-tertiary)', lineHeight: '1.5' }}>
+          {themeSaving ? '계정 설정에 저장하는 중...' : themeMessage || '선택한 색상은 로그인한 계정별로 저장됩니다.'}
+        </p>
+      </div>
+
       <div className="card">
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
           <Bell size={20} color="var(--primary-color)" />
@@ -229,11 +371,13 @@ const SettingsScreen = ({ user, onLogout }) => {
           {[
             { key: 'studyStart', label: '공부 시작 알림' },
             { key: 'breakTime', label: '휴식 시간 알림' },
-            { key: 'goalReached', label: '목표 달성 알림' }
-          ].map(item => (
+            { key: 'goalReached', label: '목표 달성 알림' },
+          ].map((item) => (
             <div key={item.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '14px' }}>{item.label}</span>
-              <div
+              <button
+                type="button"
+                aria-label={`${item.label} 전환`}
                 onClick={() => toggleNotification(item.key)}
                 style={{
                   width: '44px',
@@ -242,27 +386,28 @@ const SettingsScreen = ({ user, onLogout }) => {
                   background: notifications[item.key] ? 'var(--primary-color)' : '#E5E5EA',
                   position: 'relative',
                   cursor: 'pointer',
-                  transition: 'background 0.3s'
+                  border: 'none',
+                  padding: 0,
                 }}
               >
-                <div style={{
-                  width: '20px',
-                  height: '20px',
-                  borderRadius: '10px',
-                  background: 'white',
-                  position: 'absolute',
-                  top: '2px',
-                  left: notifications[item.key] ? '22px' : '2px',
-                  transition: 'left 0.3s'
-                }} />
-              </div>
+                <span
+                  style={{
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '10px',
+                    background: 'white',
+                    position: 'absolute',
+                    top: '2px',
+                    left: notifications[item.key] ? '22px' : '2px',
+                    transition: 'left 0.3s',
+                  }}
+                />
+              </button>
             </div>
           ))}
         </div>
       </div>
 
-
-      {/* 기타 설정 */}
       <div className="card" style={{ padding: '8px 0' }}>
         {user?.email && (
           <>
@@ -270,40 +415,45 @@ const SettingsScreen = ({ user, onLogout }) => {
               <Info size={20} color="var(--primary-color)" style={{ marginRight: '12px' }} />
               <span style={{ flex: 1, fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</span>
             </div>
-            <div style={{ height: '1px', background: '#F2F2F7', margin: '0 16px' }} />
+            <div style={dividerStyle} />
           </>
         )}
-        <div onClick={() => setConfirmModal({ type: 'logout', message: '정말 로그아웃 하시겠습니까?' })} style={{ display: 'flex', alignItems: 'center', padding: '16px', cursor: 'pointer' }}>
+        <button type="button" onClick={() => setShowHelp(true)} style={menuButtonStyle}>
+          <HelpCircle size={20} color="var(--primary-color)" style={{ marginRight: '12px' }} />
+          <span style={{ flex: 1, fontWeight: '600' }}>사용방법</span>
+          <ChevronRight size={20} color="#C7C7CC" />
+        </button>
+        <div style={dividerStyle} />
+        <button type="button" onClick={() => setConfirmModal({ type: 'logout', title: '로그아웃', message: '정말 로그아웃 하시겠어요?' })} style={menuButtonStyle}>
           <LogOut size={20} color="var(--primary-color)" style={{ marginRight: '12px' }} />
           <span style={{ flex: 1, fontWeight: '600' }}>로그아웃</span>
           <ChevronRight size={20} color="#C7C7CC" />
-        </div>
-        <div style={{ height: '1px', background: '#F2F2F7', margin: '0 16px' }} />
-        <div onClick={handleReset} style={{ display: 'flex', alignItems: 'center', padding: '16px', cursor: 'pointer' }}>
+        </button>
+        <div style={dividerStyle} />
+        <button type="button" onClick={handleReset} style={menuButtonStyle}>
           <RefreshCcw size={20} color="#FF3B30" style={{ marginRight: '12px' }} />
           <span style={{ flex: 1, color: '#FF3B30', fontWeight: '600' }}>데이터 초기화</span>
           <ChevronRight size={20} color="#C7C7CC" />
-        </div>
-        <div style={{ height: '1px', background: '#F2F2F7', margin: '0 16px' }} />
-        <div onClick={() => setInfoModal({ title: '앱 정보', message: `StudyFit v1.0.0 (Beta)\nDeveloped by Team AntiGravity` })} style={{ display: 'flex', alignItems: 'center', padding: '16px', cursor: 'pointer' }}>
+        </button>
+        <div style={dividerStyle} />
+        <button type="button" onClick={() => setInfoModal({ title: '앱 정보', message: 'StudyFit v1.0.0 (Beta)\nDeveloped by Team AntiGravity' })} style={menuButtonStyle}>
           <Info size={20} color="#8E8E93" style={{ marginRight: '12px' }} />
           <span style={{ flex: 1 }}>앱 정보</span>
           <span style={{ fontSize: '13px', color: '#C7C7CC', marginRight: '8px' }}>v1.0.0</span>
           <ChevronRight size={20} color="#C7C7CC" />
-        </div>
+        </button>
       </div>
 
       <div style={{ textAlign: 'center', marginTop: '24px', fontSize: '12px', color: '#C7C7CC' }}>
         © 2026 StudyFit. All rights reserved.
       </div>
 
-      {/* 인앱 확인 모달 */}
       {confirmModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           background: 'rgba(0,0,0,0.5)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 9999, padding: '24px'
+          zIndex: 9999, padding: '24px',
         }}>
           <div style={{
             background: 'var(--secondary-bg)',
@@ -312,10 +462,9 @@ const SettingsScreen = ({ user, onLogout }) => {
             width: '100%',
             maxWidth: '320px',
             boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
-            animation: 'slideUp 0.3s cubic-bezier(0.16,1,0.3,1)'
           }}>
             <h3 style={{ fontSize: '18px', fontWeight: '800', marginBottom: '12px', color: 'var(--text-primary)' }}>
-              {confirmModal.type === 'logout' ? '로그아웃' : '데이터 초기화'}
+              {confirmModal.title}
             </h3>
             <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: '1.6', whiteSpace: 'pre-line' }}>
               {confirmModal.message}
@@ -325,10 +474,10 @@ const SettingsScreen = ({ user, onLogout }) => {
                 onClick={() => setConfirmModal(null)}
                 style={{
                   flex: 1, padding: '14px', borderRadius: '14px',
-                  border: '1.5px solid var(--border-color, #E2E8F0)',
+                  border: '1.5px solid var(--tertiary-bg)',
                   background: 'var(--tertiary-bg)',
                   color: 'var(--text-secondary)',
-                  fontSize: '15px', fontWeight: '600', cursor: 'pointer'
+                  fontSize: '15px', fontWeight: '600', cursor: 'pointer',
                 }}
               >
                 취소
@@ -340,7 +489,7 @@ const SettingsScreen = ({ user, onLogout }) => {
                   border: 'none',
                   background: confirmModal.type === 'reset' ? '#FF3B30' : 'var(--primary-color)',
                   color: 'white',
-                  fontSize: '15px', fontWeight: '700', cursor: 'pointer'
+                  fontSize: '15px', fontWeight: '700', cursor: 'pointer',
                 }}
               >
                 {confirmModal.type === 'logout' ? '로그아웃' : '초기화'}
@@ -350,13 +499,12 @@ const SettingsScreen = ({ user, onLogout }) => {
         </div>
       )}
 
-      {/* 인앱 알림 모달 (앱 정보) */}
       {infoModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           background: 'rgba(0,0,0,0.5)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 9999, padding: '24px'
+          zIndex: 9999, padding: '24px',
         }}>
           <div style={{
             background: 'var(--secondary-bg)',
@@ -364,7 +512,6 @@ const SettingsScreen = ({ user, onLogout }) => {
             padding: '28px 24px',
             width: '100%', maxWidth: '320px',
             boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
-            animation: 'slideUp 0.3s cubic-bezier(0.16,1,0.3,1)'
           }}>
             <h3 style={{ fontSize: '18px', fontWeight: '800', marginBottom: '12px', color: 'var(--text-primary)' }}>
               {infoModal.title}
@@ -377,7 +524,53 @@ const SettingsScreen = ({ user, onLogout }) => {
               style={{
                 width: '100%', padding: '14px', borderRadius: '14px',
                 border: 'none', background: 'var(--primary-color)',
-                color: 'white', fontSize: '15px', fontWeight: '700', cursor: 'pointer'
+                color: 'white', fontSize: '15px', fontWeight: '700', cursor: 'pointer',
+              }}
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showHelp && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999, padding: '24px',
+        }}>
+          <div style={{
+            background: 'var(--secondary-bg)',
+            borderRadius: '24px',
+            padding: '24px',
+            width: '100%',
+            maxWidth: '360px',
+            maxHeight: '78vh',
+            overflowY: 'auto',
+            boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
+          }}>
+            <h3 style={{ fontSize: '19px', fontWeight: '800', marginBottom: '16px', color: 'var(--text-primary)' }}>
+              사용방법
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {helpItems.map((item) => (
+                <div key={item.title} style={{ padding: '12px', borderRadius: '14px', background: 'var(--tertiary-bg)' }}>
+                  <strong style={{ display: 'block', fontSize: '14px', marginBottom: '4px', color: 'var(--primary-color)' }}>
+                    {item.title}
+                  </strong>
+                  <p style={{ fontSize: '13px', lineHeight: '1.55', color: 'var(--text-secondary)' }}>
+                    {item.body}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowHelp(false)}
+              style={{
+                width: '100%', marginTop: '18px', padding: '14px', borderRadius: '14px',
+                border: 'none', background: 'var(--primary-color)',
+                color: 'white', fontSize: '15px', fontWeight: '700', cursor: 'pointer',
               }}
             >
               확인

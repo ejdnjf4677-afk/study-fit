@@ -8,9 +8,12 @@ const missingConfigError = {
 const missingConfigQuery = {
   select: () => missingConfigQuery,
   insert: () => missingConfigQuery,
+  upsert: () => missingConfigQuery,
   update: () => missingConfigQuery,
   delete: () => missingConfigQuery,
-  eq: () => ({ data: null, error: missingConfigError }),
+  eq: () => missingConfigQuery,
+  maybeSingle: async () => ({ data: null, error: missingConfigError }),
+  single: async () => ({ data: null, error: missingConfigError }),
 };
 
 if (!supabaseUrl || !supabaseAnonKey) {

@@ -106,7 +106,7 @@ const RewardScreen = () => {
 
       {/* 포인트 카드 */}
       <div className="card" style={{
-        background: 'linear-gradient(135deg, #2F80ED, #56CCF2)',
+        background: 'linear-gradient(135deg, rgba(var(--primary-rgb), 0.9), rgba(var(--primary-rgb), 0.68))',
         color: 'white',
         border: 'none',
         display: 'flex',
@@ -115,7 +115,7 @@ const RewardScreen = () => {
         padding: '32px 24px',
         marginBottom: '24px',
         borderRadius: '24px',
-        boxShadow: '0 16px 32px rgba(47, 128, 237, 0.2)'
+        boxShadow: '0 16px 32px rgba(var(--primary-rgb), 0.14)'
       }}>
         <div style={{ background: 'rgba(255,255,255,0.2)', padding: '12px', borderRadius: '50%', marginBottom: '16px' }}>
           <Sparkles size={28} color="white" />
@@ -192,7 +192,7 @@ const RewardScreen = () => {
                 fontSize: '14px', fontWeight: '700',
                 cursor: points >= r.cost ? 'pointer' : 'default',
                 transition: 'all 0.2s',
-                boxShadow: points >= r.cost ? '0 4px 12px rgba(47,128,237,0.2)' : 'none'
+                boxShadow: points >= r.cost ? '0 4px 12px rgba(var(--primary-rgb), 0.14)' : 'none'
               }}
             >
               교환

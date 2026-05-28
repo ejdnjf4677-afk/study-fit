@@ -15,6 +15,7 @@ import FailureScreen from './screens/FailureScreen';
 import BottomNav from './components/BottomNav';
 import { getCurrentSession } from './utils/auth';
 import { supabase } from './lib/supabase';
+import { applyAccentColor, DEFAULT_ACCENT_ID, loadUserAccent } from './utils/themeSettings';
 
 function App() {
   const [screen, setScreen] = useState('start');
@@ -44,9 +45,12 @@ function App() {
         setScreen('reset-password');
       } else if (session?.user) {
         setCurrentUser(session.user);
+        const accentId = await loadUserAccent(session.user.id);
+        applyAccentColor(accentId);
         setScreen('home');
       } else {
         setCurrentUser(null);
+        applyAccentColor(DEFAULT_ACCENT_ID);
         setScreen('start');
       }
       setAuthLoading(false);
@@ -64,8 +68,16 @@ function App() {
         setScreen('reset-password');
         return;
       }
-      if (event === 'SIGNED_IN') setScreen('home');
-      if (event === 'SIGNED_OUT') setScreen('start');
+      if (event === 'SIGNED_IN') {
+        if (user?.id) {
+          loadUserAccent(user.id).then(applyAccentColor);
+        }
+        setScreen('home');
+      }
+      if (event === 'SIGNED_OUT') {
+        applyAccentColor(DEFAULT_ACCENT_ID);
+        setScreen('start');
+      }
     });
 
     const handleNavigate = (event) => {

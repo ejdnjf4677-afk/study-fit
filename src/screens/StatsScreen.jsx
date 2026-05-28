@@ -94,8 +94,8 @@ const FocusHeatmap = ({ records }) => {
   const cellColor = (val) => {
     const intensity = val / maxVal;
     if (intensity === 0) return 'var(--tertiary-bg)';
-    const alpha = 0.15 + intensity * 0.85;
-    return `rgba(47, 128, 237, ${alpha.toFixed(2)})`;
+    const alpha = 0.12 + intensity * 0.56;
+    return `rgba(var(--primary-rgb), ${alpha.toFixed(2)})`;
   };
 
   return (
@@ -128,8 +128,8 @@ const FocusHeatmap = ({ records }) => {
       {/* legend */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', marginTop: '8px' }}>
         <span style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>낮음</span>
-        {[0.1, 0.3, 0.55, 0.75, 1].map(a => (
-          <div key={a} style={{ width: '16px', height: '16px', borderRadius: '4px', background: `rgba(47,128,237,${a})` }} />
+        {[0.08, 0.18, 0.32, 0.48, 0.68].map(a => (
+          <div key={a} style={{ width: '16px', height: '16px', borderRadius: '4px', background: `rgba(var(--primary-rgb), ${a})` }} />
         ))}
         <span style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>높음</span>
       </div>
@@ -175,7 +175,7 @@ const StudyCalendar = ({ records }) => {
   const getIntensity = (minutes) => Math.min(4, Math.floor(minutes / 120));
   const getCellColor = (minutes, selected) => {
     if (selected) return 'var(--primary-color)';
-    const colors = ['var(--tertiary-bg)', 'rgba(47, 128, 237, 0.22)', 'rgba(47, 128, 237, 0.45)', 'rgba(47, 128, 237, 0.68)', 'rgba(47, 128, 237, 0.92)'];
+    const colors = ['var(--tertiary-bg)', 'rgba(var(--primary-rgb), 0.16)', 'rgba(var(--primary-rgb), 0.3)', 'rgba(var(--primary-rgb), 0.46)', 'rgba(var(--primary-rgb), 0.64)'];
     return colors[getIntensity(minutes)];
   };
   const moveMonth = (offset) => {
@@ -230,7 +230,7 @@ const StudyCalendar = ({ records }) => {
                 gap: '2px',
                 fontSize: '13px',
                 fontWeight: '800',
-                boxShadow: hasStudy ? '0 4px 10px rgba(47, 128, 237, 0.14)' : 'none'
+                boxShadow: hasStudy ? '0 4px 10px rgba(var(--primary-rgb), 0.1)' : 'none'
               }}
             >
               {cell.day}
@@ -382,7 +382,7 @@ const StatsScreen = () => {
               <div key={day} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, gap: '8px' }}>
                 <div style={{
                   width: '100%', maxWidth: '20px', height: `${h}%`, minHeight: '4px',
-                  background: isToday ? 'linear-gradient(180deg, var(--primary-color), #56CCF2)' : 'var(--tertiary-bg)',
+                  background: isToday ? 'linear-gradient(180deg, rgba(var(--primary-rgb), 0.88), rgba(var(--primary-rgb), 0.58))' : 'var(--tertiary-bg)',
                   borderRadius: '8px', position: 'relative'
                 }}>
                   {isToday && (

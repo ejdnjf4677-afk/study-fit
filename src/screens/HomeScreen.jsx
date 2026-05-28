@@ -70,18 +70,18 @@ const HomeScreen = ({ user, onStartStudy }) => {
           <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '6px', letterSpacing: '-0.5px' }}>{nickname}님</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500' }}>오늘도 공부 핏을 맞춰볼까요?</p>
         </div>
-        <div className="badge badge-primary" style={{ padding: '8px 14px', borderRadius: '14px', boxShadow: '0 4px 12px rgba(47,128,237,0.1)' }}>
+        <div className="badge badge-primary" style={{ padding: '8px 14px', borderRadius: '14px', boxShadow: '0 4px 12px rgba(var(--primary-rgb), 0.1)' }}>
           <Sparkles size={16} style={{ marginRight: '4px' }} color="var(--primary-color)" />
           <span style={{ fontSize: '14px', fontWeight: '700' }}>{stats.points} P</span>
         </div>
       </header>
 
       <div className="card" style={{
-        background: 'linear-gradient(135deg, #2F80ED, #56CCF2)',
+        background: 'linear-gradient(135deg, rgba(var(--primary-rgb), 0.9), rgba(var(--primary-rgb), 0.68))',
         color: 'white',
         borderRadius: '24px',
         padding: '8px 24px',
-        boxShadow: '0 16px 32px rgba(47, 128, 237, 0.2)'
+        boxShadow: '0 16px 32px rgba(var(--primary-rgb), 0.14)'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <span style={{ fontSize: '15px', fontWeight: '600', opacity: 0.9 }}>오늘의 공부 시간</span>
