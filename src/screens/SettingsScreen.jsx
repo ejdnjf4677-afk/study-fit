@@ -190,17 +190,17 @@ const SettingsScreen = ({ user, onLogout }) => {
           <Target size={20} color="var(--primary-color)" />
           <h3 style={{ fontSize: '16px', fontWeight: 'bold' }}>하루 목표 시간</h3>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <input
             type="range"
             min="30"
-            max="600"
+            max="1440"
             step="30"
             value={settings.dailyGoal}
             onChange={handleGoalChange}
-            style={{ flex: 1, accentColor: 'var(--primary-color)' }}
+            style={{ width: '100%', accentColor: 'var(--primary-color)' }}
           />
-          <span style={{ fontWeight: '600', width: '72px', textAlign: 'right' }}>
+          <span style={{ fontWeight: '700', width: '100%', textAlign: 'right', color: 'var(--text-secondary)' }}>
             {Math.floor(settings.dailyGoal / 60)}시간 {settings.dailyGoal % 60}분
           </span>
         </div>
@@ -219,7 +219,7 @@ const SettingsScreen = ({ user, onLogout }) => {
             onChange={(e) => setNewSubject(e.target.value)}
             style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--tertiary-bg)', background: 'var(--secondary-bg)', color: 'var(--text-primary)' }}
           />
-          <button onClick={addSubject} className="btn-primary" style={{ width: 'auto', padding: '8px 16px' }}>추가</button>
+          <button onClick={addSubject} className="btn-primary" style={{ width: 'auto', padding: '8px 16px' }}>+</button>
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
           {subjects.map((subject) => (
@@ -256,7 +256,7 @@ const SettingsScreen = ({ user, onLogout }) => {
             onChange={(e) => setNewTodo(e.target.value)}
             style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--tertiary-bg)', background: 'var(--secondary-bg)', color: 'var(--text-primary)' }}
           />
-          <button onClick={addTodo} className="btn-primary" style={{ width: 'auto', padding: '8px 16px' }}>추가</button>
+          <button onClick={addTodo} className="btn-primary" style={{ width: 'auto', padding: '8px 16px' }}>+</button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {todos.length > 0 ? todos.map((todo) => (
