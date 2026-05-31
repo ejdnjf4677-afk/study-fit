@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import {
   Bell,
   BookOpen,
@@ -15,22 +15,35 @@ import {
   Target,
   Trash2,
 } from 'lucide-react';
-import { getAppSettings, saveAppSettings, getSubjects, saveSubjects, getNotifications, saveNotifications, clearAllData } from '../utils/storage';
+import {
+  getAppSettings,
+  saveAppSettings,
+  getSubjects,
+  saveSubjects,
+  getNotifications,
+  saveNotifications,
+  clearAllData,
+} from '../utils/storage';
 import { createCalendarItemId, getDateKey, getTodosForDate, saveTodosForDate } from '../utils/calendarStorage';
 import { signOut } from '../utils/auth';
 import { ACCENT_OPTIONS, applyAccentColor, loadUserAccent, saveUserAccent } from '../utils/themeSettings';
 
 const helpItems = [
-  { title: '홈', body: '오늘 공부 시간, 집중력 점수, 오늘 To-do를 한눈에 확인해요.' },
-  { title: '타이머', body: '과목을 고르고 집중 시간을 기록해 공부 흐름을 남겨요.' },
-  { title: '기록', body: '공부, 감정, 실패 기록을 남겨 나의 패턴을 파악해요.' },
-  { title: '통계', body: '공부량, 감정, 실패 원인, 캘린더 히트맵을 함께 확인해요.' },
-  { title: '캘린더', body: '날짜별 To-do와 일정을 관리하고 오늘 할 일과 연결해요.' },
-  { title: 'AI 코치', body: '집중, 루틴, 시험, 실패 원인 같은 공부 고민을 짧게 상담해요.' },
-  { title: '설정', body: '목표 시간, 과목, 알림, 테마 색상, 계정 정보를 관리해요.' },
+  { title: '홈', body: '오늘 공부 시간, 집중 점수, 오늘 To-do를 한눈에 확인해요.' },
+  { title: '타이머', body: '과목을 고르고 집중 시간을 기록해 공부 흐름을 이어가요.' },
+  { title: '기록', body: '공부, 감정, 실패 기록을 모아 나의 패턴을 파악해요.' },
+  { title: '통계', body: '공부량, 감정, 실패 요인, 캘린더 히트맵을 확인해요.' },
+  { title: '캘린더', body: '날짜별 To-do와 일정을 관리하고 하루를 정리해요.' },
+  { title: 'AI 코치', body: '집중, 루틴, 멘탈, 실패 원인 등 공부 고민을 상담해요.' },
+  { title: '설정', body: '목표 시간, 과목, 알림, 테마, 포인트 색상을 관리해요.' },
 ];
 
-const dividerStyle = { height: '1px', background: 'var(--tertiary-bg)', margin: '0 16px' };
+const dividerStyle = {
+  height: '1px',
+  background: 'color-mix(in srgb, var(--text-tertiary) 22%, transparent)',
+  margin: '0 16px',
+};
+
 const menuButtonStyle = {
   display: 'flex',
   alignItems: 'center',
@@ -41,6 +54,8 @@ const menuButtonStyle = {
   background: 'transparent',
   color: 'var(--text-primary)',
   textAlign: 'left',
+  boxShadow: 'none',
+  borderRadius: 0,
 };
 
 const SettingsScreen = ({ user, onLogout }) => {
@@ -103,6 +118,10 @@ const SettingsScreen = ({ user, onLogout }) => {
   };
 
   const handleAccentSelect = async (accentId) => {
+    if (settings.theme === 'dark' && accentId === 'black') {
+      return;
+    }
+
     setSelectedAccent(accentId);
     applyAccentColor(accentId);
     setThemeSaving(true);
@@ -112,8 +131,8 @@ const SettingsScreen = ({ user, onLogout }) => {
     setThemeSaving(false);
     setThemeMessage(
       result.ok
-        ? '색상 설정을 계정에 저장했어요.'
-        : 'Supabase 저장이 안 되어 이 기기에서 임시로 적용했어요.',
+        ? '색상 설정이 계정에 저장되었어요.'
+        : '계정 저장이 실패해 현재 기기에만 임시 적용되었어요.',
     );
   };
 
@@ -121,7 +140,7 @@ const SettingsScreen = ({ user, onLogout }) => {
     setConfirmModal({
       type: 'reset',
       title: '데이터 초기화',
-      message: '정말 모든 데이터를 초기화할까요?\n이 작업은 되돌릴 수 없습니다.',
+      message: '정말 모든 데이터를 초기화할까요?\n이 작업은 되돌릴 수 없어요.',
     });
   };
 
@@ -284,6 +303,14 @@ const SettingsScreen = ({ user, onLogout }) => {
               setSettings(updated);
               saveAppSettings(updated);
               document.body.classList.toggle('dark', newTheme === 'dark');
+              if (newTheme === 'dark' && selectedAccent === 'black') {
+                const fallbackAccent = 'lightgray';
+                setSelectedAccent(fallbackAccent);
+                applyAccentColor(fallbackAccent);
+                saveUserAccent(user?.id, fallbackAccent);
+              } else {
+                applyAccentColor(selectedAccent);
+              }
             }}
             style={{
               width: '44px',
@@ -320,6 +347,7 @@ const SettingsScreen = ({ user, onLogout }) => {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
           {ACCENT_OPTIONS.map((option) => {
             const selected = selectedAccent === option.id;
+            const isBlackDisabledInDark = settings.theme === 'dark' && option.id === 'black';
             return (
               <button
                 key={option.id}
@@ -327,6 +355,7 @@ const SettingsScreen = ({ user, onLogout }) => {
                 onClick={() => handleAccentSelect(option.id)}
                 aria-label={`${option.label} 선택`}
                 title={option.label}
+                disabled={isBlackDisabledInDark}
                 style={{
                   aspectRatio: '1',
                   borderRadius: '16px',
@@ -336,8 +365,10 @@ const SettingsScreen = ({ user, onLogout }) => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  cursor: 'pointer',
+                  cursor: isBlackDisabledInDark ? 'not-allowed' : 'pointer',
                   boxShadow: selected ? `0 8px 18px ${option.color}33` : 'none',
+                  opacity: isBlackDisabledInDark ? 0.6 : 1,
+                  position: 'relative',
                 }}
               >
                 <span
@@ -353,12 +384,25 @@ const SettingsScreen = ({ user, onLogout }) => {
                 >
                   {selected && <Check size={15} color="white" />}
                 </span>
+                {isBlackDisabledInDark && (
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      position: 'absolute',
+                      width: '30px',
+                      height: '2px',
+                      background: '#EF4444',
+                      transform: 'rotate(-45deg)',
+                      borderRadius: '2px',
+                    }}
+                  />
+                )}
               </button>
             );
           })}
         </div>
         <p style={{ marginTop: '12px', fontSize: '12px', color: 'var(--text-tertiary)', lineHeight: '1.5' }}>
-          {themeSaving ? '계정 설정에 저장하는 중...' : themeMessage || '선택한 색상은 로그인한 계정별로 저장됩니다.'}
+          {themeSaving ? '계정 설정 저장 중...' : themeMessage || '선택한 포인트 색상은 로그인한 계정별로 저장됩니다.'}
         </p>
       </div>
 

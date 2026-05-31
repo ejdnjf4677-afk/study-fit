@@ -9,7 +9,7 @@ const rewards = [
   { name: '문화상품권 10,000원', cost: 40000, color: '#F2994A' },
 ];
 
-const AD_COOLDOWN_MS = 30 * 60 * 1000;
+const AD_COOLDOWN_MS = 5 * 60 * 1000;
 const AD_LAST_WATCHED_KEY = 'ad_last_watched_at';
 
 const getRemainingAdTime = () => {

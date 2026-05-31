@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { CalendarCheck, Clock, Play, CheckCircle2, Circle, TrendingUp, Sparkles } from 'lucide-react';
 import { getStudyRecords, getEmotionLogs, getFailureLogs, getUserPoints, getAppSettings, getStreak } from '../utils/storage';
 import { calculateConcentrationScore } from '../utils/logic';
@@ -11,7 +11,7 @@ const HomeScreen = ({ user, onStartStudy }) => {
     achievementRate: 0,
     concentrationScore: 0,
     streak: 0,
-    points: 0
+    points: 0,
   });
   const todayKey = getDateKey(new Date());
   const [todos, setTodos] = useState(() => getTodosForDate(todayKey));
@@ -24,22 +24,19 @@ const HomeScreen = ({ user, onStartStudy }) => {
     const userPoints = getUserPoints();
     const userStreak = getStreak();
 
-    // Calculate today's minutes
     const today = new Date().toLocaleDateString();
-    const todayRecords = records.filter(r => new Date(r.timestamp).toLocaleDateString() === today);
-    const todayEmotions = emotions.filter(e => new Date(e.timestamp).toLocaleDateString() === today);
-    const todayFailures = failures.filter(f => new Date(f.timestamp).toLocaleDateString() === today);
+    const todayRecords = records.filter((r) => new Date(r.timestamp).toLocaleDateString() === today);
+    const todayEmotions = emotions.filter((e) => new Date(e.timestamp).toLocaleDateString() === today);
+    const todayFailures = failures.filter((f) => new Date(f.timestamp).toLocaleDateString() === today);
     const todayMinutes = todayRecords.reduce((acc, r) => acc + r.durationMinutes, 0);
 
     const achievementRate = Math.min(100, Math.round((todayMinutes / settings.dailyGoal) * 100));
-
-    // Average concentration score for today
     const totalPauses = todayRecords.reduce((acc, r) => acc + (r.pauseCount || 0), 0);
     const concentrationScore = todayRecords.length > 0
       ? calculateConcentrationScore(achievementRate, totalPauses, {
           records: todayRecords,
           emotions: todayEmotions,
-          failures: todayFailures
+          failures: todayFailures,
         })
       : 0;
 
@@ -48,7 +45,7 @@ const HomeScreen = ({ user, onStartStudy }) => {
       achievementRate,
       concentrationScore,
       streak: userStreak.count,
-      points: userPoints
+      points: userPoints,
     });
     setTodos(getTodosForDate(todayKey));
 
@@ -58,7 +55,7 @@ const HomeScreen = ({ user, onStartStudy }) => {
   }, [user, todayKey]);
 
   const toggleTodo = (id) => {
-    const updated = todos.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
+    const updated = todos.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t));
     setTodos(updated);
     saveTodosForDate(todayKey, updated);
   };
@@ -76,35 +73,40 @@ const HomeScreen = ({ user, onStartStudy }) => {
         </div>
       </header>
 
-      <div className="card" style={{
-        background: 'linear-gradient(135deg, rgba(var(--primary-rgb), 0.9), rgba(var(--primary-rgb), 0.68))',
-        color: 'white',
-        borderRadius: '24px',
-        padding: '8px 24px',
-        boxShadow: '0 16px 32px rgba(var(--primary-rgb), 0.14)'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      <div
+        className="card"
+        style={{
+          background: 'linear-gradient(135deg, rgba(var(--primary-rgb), 0.9), rgba(var(--primary-rgb), 0.68))',
+          color: 'white',
+          borderRadius: '24px',
+          padding: '8px 24px',
+          boxShadow: '0 16px 32px rgba(var(--primary-rgb), 0.14)',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
           <span style={{ fontSize: '15px', fontWeight: '600', opacity: 0.9 }}>오늘의 공부 시간</span>
           <div style={{ background: 'rgba(255,255,255,0.2)', padding: '8px', borderRadius: '12px' }}>
             <Clock size={20} color="white" />
           </div>
         </div>
         <div style={{ fontSize: '42px', fontWeight: '800', marginBottom: '12px', letterSpacing: '-1px' }}>
-          {Math.floor(stats.todayMinutes / 60)}<span style={{ fontSize: '24px', fontWeight: '600', opacity: 0.9 }}>시간</span> {stats.todayMinutes % 60}<span style={{ fontSize: '24px', fontWeight: '600', opacity: 0.9 }}>분</span>
+          {Math.floor(stats.todayMinutes / 60)}
+          <span style={{ fontSize: '24px', fontWeight: '600', opacity: 0.9 }}>시간</span> {stats.todayMinutes % 60}
+          <span style={{ fontSize: '24px', fontWeight: '600', opacity: 0.9 }}>분</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', fontWeight: '600', opacity: 0.9, marginBottom: '8px' }}>
           <span>일일 목표 달성률</span>
           <span>{stats.achievementRate}%</span>
         </div>
         <div style={{ width: '100%', height: '8px', backgroundColor: 'rgba(0,0,0,0.15)', borderRadius: '4px', overflow: 'hidden' }}>
-          <div style={{ width: `${stats.achievementRate}%`, height: '100%', backgroundColor: 'white', borderRadius: '4px', transition: 'width 1s cubic-bezier(0.16, 1, 0.3, 1)' }}></div>
+          <div style={{ width: `${stats.achievementRate}%`, height: '100%', backgroundColor: 'white', borderRadius: '4px', transition: 'width 1s cubic-bezier(0.16, 1, 0.3, 1)' }} />
         </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
         <div className="card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '600' }}>집중력 점수</div>
+            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '600' }}>집중도 점수</div>
             <div style={{ background: 'var(--primary-light)', padding: '6px', borderRadius: '10px' }}>
               <TrendingUp size={16} color="var(--primary-color)" />
             </div>
@@ -127,6 +129,11 @@ const HomeScreen = ({ user, onStartStudy }) => {
         </div>
       </div>
 
+      <button className="btn-primary" onClick={onStartStudy} style={{ padding: '20px', borderRadius: '20px', fontSize: '18px', marginBottom: '24px' }}>
+        <Play size={24} fill="white" />
+        공부 시작하기
+      </button>
+
       <div className="card" style={{ padding: '24px 20px', marginBottom: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <h3 className="card-title" style={{ margin: 0 }}>오늘 To-do</h3>
@@ -144,13 +151,15 @@ const HomeScreen = ({ user, onStartStudy }) => {
               ) : (
                 <Circle size={24} color="var(--text-tertiary)" />
               )}
-              <span style={{
-                fontSize: '15px',
-                fontWeight: task.completed ? '500' : '600',
-                color: task.completed ? 'var(--text-tertiary)' : 'var(--text-primary)',
-                textDecoration: task.completed ? 'line-through' : 'none',
-                transition: 'all 0.2s'
-              }}>
+              <span
+                style={{
+                  fontSize: '15px',
+                  fontWeight: task.completed ? '500' : '600',
+                  color: task.completed ? 'var(--text-tertiary)' : 'var(--text-primary)',
+                  textDecoration: task.completed ? 'line-through' : 'none',
+                  transition: 'all 0.2s',
+                }}
+              >
                 {task.text}
               </span>
             </div>
@@ -161,11 +170,6 @@ const HomeScreen = ({ user, onStartStudy }) => {
           )}
         </div>
       </div>
-
-      <button className="btn-primary" onClick={onStartStudy} style={{ padding: '20px', borderRadius: '20px', fontSize: '18px' }}>
-        <Play size={24} fill="white" />
-        공부 시작하기
-      </button>
     </div>
   );
 };

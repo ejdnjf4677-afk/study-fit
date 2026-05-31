@@ -3,11 +3,19 @@ import { supabase } from '../lib/supabase';
 export const DEFAULT_ACCENT_ID = 'sky';
 
 export const ACCENT_OPTIONS = [
-  { id: 'sky', label: '하늘색', color: '#2F80ED', light: '#EEF5FF', dark: '#1A5CBC', rgb: '47, 128, 237' },
-  { id: 'purple', label: '보라색', color: '#8B5CF6', light: '#F3E8FF', dark: '#6D28D9', rgb: '139, 92, 246' },
-  { id: 'green', label: '초록색', color: '#22C55E', light: '#DCFCE7', dark: '#15803D', rgb: '34, 197, 94' },
-  { id: 'pink', label: '분홍색', color: '#EC4899', light: '#FCE7F3', dark: '#BE185D', rgb: '236, 72, 153' },
-  { id: 'orange', label: '주황색', color: '#F97316', light: '#FFEDD5', dark: '#C2410C', rgb: '249, 115, 22' },
+  { id: 'sky', label: 'Sky Blue', color: '#2F80ED', light: '#EEF5FF', dark: '#1A5CBC', rgb: '47, 128, 237' },
+  { id: 'purple', label: 'Purple', color: '#8B5CF6', light: '#F3E8FF', dark: '#6D28D9', rgb: '139, 92, 246' },
+  { id: 'green', label: 'Green', color: '#22C55E', light: '#DCFCE7', dark: '#15803D', rgb: '34, 197, 94' },
+  { id: 'pink', label: 'Light Pink', color: '#F472B6', light: '#FDF2F8', dark: '#DB2777', rgb: '244, 114, 182' },
+  { id: 'orange', label: 'Orange', color: '#F97316', light: '#FFEDD5', dark: '#C2410C', rgb: '249, 115, 22' },
+  { id: 'yellow', label: 'Yellow', color: '#EAB308', light: '#FEF9C3', dark: '#A16207', rgb: '234, 179, 8' },
+  { id: 'red', label: 'Red', color: '#EF4444', light: '#FEE2E2', dark: '#B91C1C', rgb: '239, 68, 68' },
+  { id: 'lightblue', label: 'Light Blue', color: '#38BDF8', light: '#E0F2FE', dark: '#0284C7', rgb: '56, 189, 248' },
+  { id: 'deepgreen', label: 'Deep Green', color: '#166534', light: '#DCFCE7', dark: '#14532D', rgb: '22, 101, 52' },
+  { id: 'black', label: 'Black', color: '#111111', light: '#F4F4F5', dark: '#000000', rgb: '17, 17, 17' },
+  { id: 'darkgray', label: 'Dark Gray', color: '#4B5563', light: '#E5E7EB', dark: '#374151', rgb: '75, 85, 99' },
+  { id: 'brown', label: 'Brown', color: '#8B5E3C', light: '#F3E8DD', dark: '#6E462A', rgb: '139, 94, 60' },
+  { id: 'lightgray', label: 'Light Gray', color: '#9CA3AF', light: '#F3F4F6', dark: '#6B7280', rgb: '156, 163, 175' },
 ];
 
 const FALLBACK_KEY = 'studyfit_accent_fallback';
@@ -16,8 +24,25 @@ export const getAccentOption = (accentId = DEFAULT_ACCENT_ID) => (
   ACCENT_OPTIONS.find((option) => option.id === accentId) || ACCENT_OPTIONS[0]
 );
 
-export const applyAccentColor = (accentId = DEFAULT_ACCENT_ID) => {
+const getEffectiveAccentOption = (accentId = DEFAULT_ACCENT_ID) => {
   const option = getAccentOption(accentId);
+  const isDarkMode = document.body.classList.contains('dark');
+
+  if (accentId === 'black' && isDarkMode) {
+    return {
+      ...option,
+      color: '#FFFFFF',
+      light: '#F5F5F5',
+      dark: '#E5E7EB',
+      rgb: '255, 255, 255',
+    };
+  }
+
+  return option;
+};
+
+export const applyAccentColor = (accentId = DEFAULT_ACCENT_ID) => {
+  const option = getEffectiveAccentOption(accentId);
   const root = document.documentElement;
 
   root.style.setProperty('--accent-color', option.color);
