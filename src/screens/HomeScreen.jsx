@@ -1,11 +1,24 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { CalendarCheck, Clock, Play, CheckCircle2, Circle, TrendingUp, Sparkles } from 'lucide-react';
-import { getStudyRecords, getEmotionLogs, getFailureLogs, getUserPoints, getAppSettings, getStreak } from '../utils/storage';
+import { getStudyRecords, getEmotionLogs, getFailureLogs, getUserPoints, getAppSettings, getStreak, loadData } from '../utils/storage';
 import { calculateConcentrationScore } from '../utils/logic';
 import { getDateKey, getTodosForDate, saveTodosForDate } from '../utils/calendarStorage';
 
 const HomeScreen = ({ user, onStartStudy }) => {
+  const badgeMeta = {
+    'focus-sprout': { name: '집중 새싹', emoji: '🌱' },
+    'escape-3days': { name: '작심삼일 탈출', emoji: '🔥' },
+    'routine-maker': { name: '루틴 메이커', emoji: '📅' },
+    'todo-master': { name: 'To-do 마스터', emoji: '✅' },
+    'exam-survivor': { name: '시험기간 생존자', emoji: '🧠' },
+    'night-owl': { name: '새벽 공부러', emoji: '🌙' },
+    'focus-cat': { name: '집중 고양이', emoji: '🐱' },
+    'steady-proof': { name: '꾸준함의 증명', emoji: '🏅' },
+    'studyfit-master': { name: '스터디핏 마스터', emoji: '👑' },
+  };
+
   const [nickname, setNickname] = useState('사용자');
+  const [selectedBadge, setSelectedBadge] = useState(null);
   const [stats, setStats] = useState({
     todayMinutes: 0,
     achievementRate: 0,
@@ -49,6 +62,14 @@ const HomeScreen = ({ user, onStartStudy }) => {
     });
     setTodos(getTodosForDate(todayKey));
 
+    const ownedBadges = loadData('owned_badges', []);
+    const selectedBadgeId = loadData('selected_badge_id', null);
+    if (selectedBadgeId && ownedBadges.includes(selectedBadgeId) && badgeMeta[selectedBadgeId]) {
+      setSelectedBadge(badgeMeta[selectedBadgeId]);
+    } else {
+      setSelectedBadge(null);
+    }
+
     if (user) {
       setNickname(user.user_metadata?.nickname || user.email?.split('@')[0] || '사용자');
     }
@@ -65,6 +86,25 @@ const HomeScreen = ({ user, onStartStudy }) => {
       <header style={{ marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '6px', letterSpacing: '-0.5px' }}>{nickname}님</h2>
+          {selectedBadge && (
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'var(--primary-light)',
+                color: 'var(--primary-color)',
+                borderRadius: '999px',
+                padding: '5px 10px',
+                fontSize: '12px',
+                fontWeight: '700',
+                marginBottom: '8px',
+              }}
+            >
+              <span>{selectedBadge.emoji}</span>
+              <span>대표 배지 · {selectedBadge.name}</span>
+            </div>
+          )}
           <p style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500' }}>오늘도 공부 핏을 맞춰볼까요?</p>
         </div>
         <div className="badge badge-primary" style={{ padding: '8px 14px', borderRadius: '14px', boxShadow: '0 4px 12px rgba(var(--primary-rgb), 0.1)' }}>

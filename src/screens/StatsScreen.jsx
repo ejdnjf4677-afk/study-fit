@@ -174,7 +174,6 @@ const StudyCalendar = ({ records }) => {
 
   const getIntensity = (minutes) => Math.min(4, Math.floor(minutes / 120));
   const getCellColor = (minutes, selected) => {
-    if (selected) return 'var(--primary-color)';
     const colors = ['var(--tertiary-bg)', 'rgba(var(--primary-rgb), 0.16)', 'rgba(var(--primary-rgb), 0.3)', 'rgba(var(--primary-rgb), 0.46)', 'rgba(var(--primary-rgb), 0.64)'];
     return colors[getIntensity(minutes)];
   };
@@ -221,7 +220,7 @@ const StudyCalendar = ({ records }) => {
                 border: selected ? '2px solid var(--primary-dark)' : '1px solid transparent',
                 borderRadius: '12px',
                 background: getCellColor(cell.minutes, selected),
-                color: selected ? 'white' : getIntensity(cell.minutes) >= 3 ? 'white' : 'var(--text-primary)',
+                color: getIntensity(cell.minutes) >= 3 ? 'white' : 'var(--text-primary)',
                 cursor: 'pointer',
                 display: 'flex',
                 flexDirection: 'column',
