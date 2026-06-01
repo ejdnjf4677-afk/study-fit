@@ -1,9 +1,9 @@
-import React, { useMemo, useState } from 'react';
+﻿import React, { useMemo, useState } from 'react';
 import { CalendarDays, CheckSquare, Clock, Edit3, Plus, Save, Trash2, X, ChevronLeft, ChevronRight } from 'lucide-react';
-import { createCalendarItemId, getCalendarData, getDateKey, getDayData, saveDayData } from '../utils/calendarStorage';
+import { createCalendarItemId, getCalendarData, getDateKey, saveDayData } from '../utils/calendarStorage';
 
 const emptyTodoForm = { text: '' };
-const emptyScheduleForm = { title: '', time: '', memo: '' };
+const emptyScheduleForm = { title: '', time: '', memo: '', allDay: false };
 
 const CalendarScreen = () => {
   const [calendarMonth, setCalendarMonth] = useState(new Date());
@@ -22,13 +22,14 @@ const CalendarScreen = () => {
     const month = calendarMonth.getMonth();
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
+
     return [
       ...Array.from({ length: firstDay }, (_, i) => ({ key: `empty-${i}`, empty: true })),
       ...Array.from({ length: daysInMonth }, (_, i) => {
         const date = new Date(year, month, i + 1);
         const key = getDateKey(date);
         return { key, date, day: i + 1, data: calendarData[key] };
-      })
+      }),
     ];
   }, [calendarMonth, calendarData]);
 
@@ -49,7 +50,7 @@ const CalendarScreen = () => {
     if (!text) return;
 
     const todos = editingTodoId
-      ? selectedDayData.todos.map(todo => todo.id === editingTodoId ? { ...todo, text } : todo)
+      ? selectedDayData.todos.map((todo) => (todo.id === editingTodoId ? { ...todo, text } : todo))
       : [...selectedDayData.todos, { id: createCalendarItemId(), text, completed: false }];
 
     updateSelectedDay({ ...selectedDayData, todos });
@@ -63,12 +64,13 @@ const CalendarScreen = () => {
 
     const schedule = {
       title,
-      time: scheduleForm.time,
+      time: scheduleForm.allDay ? '' : scheduleForm.time,
       memo: scheduleForm.memo.trim(),
+      allDay: !!scheduleForm.allDay,
     };
 
     const schedules = editingScheduleId
-      ? selectedDayData.schedules.map(item => item.id === editingScheduleId ? { ...item, ...schedule } : item)
+      ? selectedDayData.schedules.map((item) => (item.id === editingScheduleId ? { ...item, ...schedule } : item))
       : [...selectedDayData.schedules, { id: createCalendarItemId(), ...schedule }];
 
     updateSelectedDay({ ...selectedDayData, schedules });
@@ -77,12 +79,12 @@ const CalendarScreen = () => {
   };
 
   const toggleTodo = (id) => {
-    const todos = selectedDayData.todos.map(todo => todo.id === id ? { ...todo, completed: !todo.completed } : todo);
+    const todos = selectedDayData.todos.map((todo) => (todo.id === id ? { ...todo, completed: !todo.completed } : todo));
     updateSelectedDay({ ...selectedDayData, todos });
   };
 
   const deleteTodo = (id) => {
-    updateSelectedDay({ ...selectedDayData, todos: selectedDayData.todos.filter(todo => todo.id !== id) });
+    updateSelectedDay({ ...selectedDayData, todos: selectedDayData.todos.filter((todo) => todo.id !== id) });
     if (editingTodoId === id) {
       setEditingTodoId(null);
       setTodoForm(emptyTodoForm);
@@ -90,7 +92,7 @@ const CalendarScreen = () => {
   };
 
   const deleteSchedule = (id) => {
-    updateSelectedDay({ ...selectedDayData, schedules: selectedDayData.schedules.filter(item => item.id !== id) });
+    updateSelectedDay({ ...selectedDayData, schedules: selectedDayData.schedules.filter((item) => item.id !== id) });
     if (editingScheduleId === id) {
       setEditingScheduleId(null);
       setScheduleForm(emptyScheduleForm);
@@ -104,11 +106,16 @@ const CalendarScreen = () => {
 
   const startEditSchedule = (schedule) => {
     setEditingScheduleId(schedule.id);
-    setScheduleForm({ title: schedule.title, time: schedule.time || '', memo: schedule.memo || '' });
+    setScheduleForm({
+      title: schedule.title,
+      time: schedule.time || '',
+      memo: schedule.memo || '',
+      allDay: !!schedule.allDay,
+    });
   };
 
   const moveMonth = (offset) => {
-    setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + offset, 1));
+    setCalendarMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + offset, 1));
   };
 
   const selectDate = (date) => {
@@ -138,13 +145,13 @@ const CalendarScreen = () => {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px', marginBottom: '8px' }}>
-          {['일', '월', '화', '수', '목', '금', '토'].map(day => (
+          {['일', '월', '화', '수', '목', '금', '토'].map((day) => (
             <div key={day} style={{ textAlign: 'center', fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: '800' }}>{day}</div>
           ))}
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px' }}>
-          {calendarCells.map(cell => {
+          {calendarCells.map((cell) => {
             if (cell.empty) return <div key={cell.key} style={{ aspectRatio: '1 / 1' }} />;
             const isSelected = cell.key === selectedKey;
             const todos = cell.data?.todos || [];
@@ -169,7 +176,7 @@ const CalendarScreen = () => {
                   justifyContent: 'center',
                   gap: '4px',
                   fontSize: '13px',
-                  fontWeight: '800'
+                  fontWeight: '800',
                 }}
               >
                 {cell.day}
@@ -197,12 +204,7 @@ const CalendarScreen = () => {
       <section className="card" style={{ padding: '20px', marginBottom: '18px' }}>
         <SectionTitle icon={CheckSquare} title="To-do" />
         <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
-          <input
-            value={todoForm.text}
-            onChange={(e) => setTodoForm({ text: e.target.value })}
-            placeholder="예: 수학 과제하기"
-            style={inputStyle}
-          />
+          <input value={todoForm.text} onChange={(e) => setTodoForm({ text: e.target.value })} placeholder="예: 수학 과제하기" style={inputStyle} />
           <button onClick={saveTodo} aria-label={editingTodoId ? 'To-do 수정' : 'To-do 추가'} style={smallPrimaryButtonStyle}>
             {editingTodoId ? <Save size={18} /> : <Plus size={18} />}
           </button>
@@ -214,7 +216,7 @@ const CalendarScreen = () => {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {selectedDayData.todos.length > 0 ? selectedDayData.todos.map(todo => (
+          {selectedDayData.todos.length > 0 ? selectedDayData.todos.map((todo) => (
             <div key={todo.id} style={listItemStyle}>
               <button onClick={() => toggleTodo(todo.id)} aria-label="완료 전환" style={{ ...iconButtonStyle, flexShrink: 0 }}>
                 <CheckSquare size={18} color={todo.completed ? 'var(--primary-color)' : 'var(--text-tertiary)'} />
@@ -232,24 +234,65 @@ const CalendarScreen = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '14px' }}>
           <input
             value={scheduleForm.title}
-            onChange={(e) => setScheduleForm(prev => ({ ...prev, title: e.target.value }))}
+            onChange={(e) => setScheduleForm((prev) => ({ ...prev, title: e.target.value }))}
             placeholder="일정 제목"
             style={inputStyle}
           />
+
           <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: '8px' }}>
             <input
               type="time"
               value={scheduleForm.time}
-              onChange={(e) => setScheduleForm(prev => ({ ...prev, time: e.target.value }))}
-              style={inputStyle}
+              onChange={(e) => setScheduleForm((prev) => ({ ...prev, time: e.target.value }))}
+              disabled={scheduleForm.allDay}
+              style={{ ...inputStyle, opacity: scheduleForm.allDay ? 0.55 : 1 }}
             />
-            <input
-              value={scheduleForm.memo}
-              onChange={(e) => setScheduleForm(prev => ({ ...prev, memo: e.target.value }))}
-              placeholder="메모"
-              style={inputStyle}
-            />
+            <button
+              type="button"
+              onClick={() => setScheduleForm((prev) => ({ ...prev, allDay: !prev.allDay, time: prev.allDay ? prev.time : '' }))}
+              style={{
+                ...inputStyle,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                background: 'var(--secondary-bg)',
+              }}
+            >
+              <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-secondary)' }}>종일 일정</span>
+              <span
+                style={{
+                  width: '40px',
+                  height: '22px',
+                  borderRadius: '999px',
+                  background: scheduleForm.allDay ? 'var(--primary-color)' : 'var(--tertiary-bg)',
+                  position: 'relative',
+                  transition: 'background 0.2s ease',
+                }}
+              >
+                <span
+                  style={{
+                    width: '18px',
+                    height: '18px',
+                    borderRadius: '50%',
+                    background: 'white',
+                    position: 'absolute',
+                    top: '2px',
+                    left: scheduleForm.allDay ? '20px' : '2px',
+                    transition: 'left 0.2s ease',
+                  }}
+                />
+              </span>
+            </button>
           </div>
+
+          <input
+            value={scheduleForm.memo}
+            onChange={(e) => setScheduleForm((prev) => ({ ...prev, memo: e.target.value }))}
+            placeholder="메모"
+            style={inputStyle}
+          />
+
           <div style={{ display: 'flex', gap: '8px' }}>
             <button onClick={saveSchedule} className="btn-primary" style={{ padding: '13px', borderRadius: '14px', fontSize: '14px' }}>
               {editingScheduleId ? <Save size={18} /> : <Plus size={18} />}
@@ -266,10 +309,18 @@ const CalendarScreen = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {selectedDayData.schedules.length > 0 ? selectedDayData.schedules
             .slice()
-            .sort((a, b) => (a.time || '').localeCompare(b.time || ''))
-            .map(schedule => (
+            .sort((a, b) => {
+              const aAllDay = !!a.allDay;
+              const bAllDay = !!b.allDay;
+              if (aAllDay && !bAllDay) return -1;
+              if (!aAllDay && bAllDay) return 1;
+              return (a.time || '').localeCompare(b.time || '');
+            })
+            .map((schedule) => (
               <div key={schedule.id} style={{ ...listItemStyle, alignItems: 'flex-start' }}>
-                <div style={{ minWidth: '48px', color: 'var(--primary-color)', fontWeight: '800', fontSize: '13px', paddingTop: '2px' }}>{schedule.time || '--:--'}</div>
+                <div style={{ minWidth: '60px', color: 'var(--primary-color)', fontWeight: '800', fontSize: '13px', paddingTop: '2px' }}>
+                  {schedule.allDay ? '종일' : (schedule.time || '--:--')}
+                </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '4px' }}>{schedule.title}</div>
                   {schedule.memo && <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.45 }}>{schedule.memo}</div>}
