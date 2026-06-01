@@ -16,25 +16,31 @@ import BottomNav from './components/BottomNav';
 import { getCurrentSession } from './utils/auth';
 import { supabase } from './lib/supabase';
 import { applyAccentColor, DEFAULT_ACCENT_ID, loadUserAccent } from './utils/themeSettings';
+import { clearUserCache, hydrateUserData } from './services/dataSyncService';
+import { DATA_SYNC_ERROR_EVENT } from './services/supabaseService';
+
+const applyStoredTheme = () => {
+  const storedSettings = localStorage.getItem('app_settings');
+  if (!storedSettings) {
+    document.body.classList.remove('dark');
+    return;
+  }
+
+  const settings = JSON.parse(storedSettings);
+  document.body.classList.toggle('dark', settings.theme === 'dark');
+};
 
 function App() {
   const [screen, setScreen] = useState('start');
   const [lastSession, setLastSession] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [syncError, setSyncError] = useState('');
 
   useEffect(() => {
     const initializeApp = async () => {
       // Theme Check
-      const storedSettings = localStorage.getItem('app_settings');
-      if (storedSettings) {
-        const settings = JSON.parse(storedSettings);
-        if (settings.theme === 'dark') {
-          document.body.classList.add('dark');
-        } else {
-          document.body.classList.remove('dark');
-        }
-      }
+      applyStoredTheme();
 
       // Session Check
       localStorage.removeItem('studyfit_users');
@@ -45,10 +51,18 @@ function App() {
         setScreen('reset-password');
       } else if (session?.user) {
         setCurrentUser(session.user);
+        try {
+          await hydrateUserData(session.user.id);
+          applyStoredTheme();
+        } catch (error) {
+          console.error(error);
+          setSyncError('데이터를 불러오지 못했어요. 네트워크 상태를 확인해주세요.');
+        }
         const accentId = await loadUserAccent(session.user.id);
         applyAccentColor(accentId);
         setScreen('home');
       } else {
+        clearUserCache();
         setCurrentUser(null);
         applyAccentColor(DEFAULT_ACCENT_ID);
         setScreen('start');
@@ -61,7 +75,7 @@ function App() {
       setAuthLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       const user = session?.user || null;
       setCurrentUser(user);
       if (event === 'PASSWORD_RECOVERY') {
@@ -70,11 +84,19 @@ function App() {
       }
       if (event === 'SIGNED_IN') {
         if (user?.id) {
+          try {
+            await hydrateUserData(user.id);
+            applyStoredTheme();
+          } catch (error) {
+            console.error(error);
+            setSyncError('데이터를 불러오지 못했어요. 네트워크 상태를 확인해주세요.');
+          }
           loadUserAccent(user.id).then(applyAccentColor);
         }
         setScreen('home');
       }
       if (event === 'SIGNED_OUT') {
+        clearUserCache();
         applyAccentColor(DEFAULT_ACCENT_ID);
         setScreen('start');
       }
@@ -85,10 +107,16 @@ function App() {
     };
 
     window.addEventListener('studyfit:navigate', handleNavigate);
+    const handleDataSyncError = (event) => {
+      setSyncError(event.detail?.message || '데이터 동기화에 실패했어요. 잠시 후 다시 시도해주세요.');
+    };
+
+    window.addEventListener(DATA_SYNC_ERROR_EVENT, handleDataSyncError);
 
     return () => {
       subscription.unsubscribe();
       window.removeEventListener('studyfit:navigate', handleNavigate);
+      window.removeEventListener(DATA_SYNC_ERROR_EVENT, handleDataSyncError);
     };
   }, []);
 
@@ -137,6 +165,30 @@ function App() {
   return (
     <>
       {renderScreen()}
+      {syncError && (
+        <div
+          role="status"
+          onClick={() => setSyncError('')}
+          style={{
+            position: 'absolute',
+            left: '18px',
+            right: '18px',
+            bottom: '104px',
+            zIndex: 2000,
+            padding: '12px 14px',
+            borderRadius: '14px',
+            background: 'rgba(235, 87, 87, 0.95)',
+            color: 'white',
+            fontSize: '13px',
+            fontWeight: '700',
+            lineHeight: 1.45,
+            boxShadow: '0 10px 24px rgba(235, 87, 87, 0.24)',
+            cursor: 'pointer',
+          }}
+        >
+          {syncError}
+        </div>
+      )}
       {screen !== 'start' &&
         screen !== 'timer' &&
         screen !== 'forgot-password' &&

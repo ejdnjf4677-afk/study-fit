@@ -1,3 +1,7 @@
+import { fireAndForget } from '../services/supabaseService';
+import { replaceTodosForDate } from '../services/todoService';
+import { replaceSchedulesForDate } from '../services/calendarService';
+
 const CALENDAR_KEY = 'studyfit_calendar_items';
 
 export const getDateKey = (date) => {
@@ -36,6 +40,8 @@ export const saveDayData = (dateKey, dayData) => {
       schedules: dayData.schedules || [],
     },
   });
+  fireAndForget((userId) => replaceTodosForDate(userId, dateKey, dayData.todos || []));
+  fireAndForget((userId) => replaceSchedulesForDate(userId, dateKey, dayData.schedules || []));
 };
 
 export const saveTodosForDate = (dateKey, todos) => {
