@@ -82,6 +82,7 @@ function App() {
       if (isResetPasswordPath) {
         setScreen('reset-password');
       } else if (session?.user) {
+        setSyncError('');
         setCurrentUser(session.user);
         setScreen('home');
         syncUserData(session.user.id);
@@ -111,6 +112,7 @@ function App() {
       }
 
       if (event === 'SIGNED_IN') {
+        setSyncError('');
         if (user?.id) {
           resetRemoteSyncState();
           setTimeout(() => syncUserData(user.id), 0);
@@ -189,7 +191,7 @@ function App() {
   return (
     <>
       {renderScreen()}
-      {syncError && (
+      {syncError && !currentUser && (
         <div
           role="status"
           onClick={() => setSyncError('')}
