@@ -140,8 +140,8 @@ const SettingsScreen = ({ user, onLogout, onUserUpdate }) => {
     setThemeSaving(false);
     setThemeMessage(
       result.ok
-        ? '색상 설정이 계정에 저장되었어요.'
-        : '계정 저장이 실패해 현재 기기에만 임시 적용되었어요.',
+        ? '색상 설정이 이 기기에 저장되었어요.'
+        : '색상 설정 저장에 실패했어요.',
     );
   };
 

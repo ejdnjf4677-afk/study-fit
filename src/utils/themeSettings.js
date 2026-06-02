@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { syncLocalKeyForCurrentUser } from '../services/dataSyncService';
 
 export const DEFAULT_ACCENT_ID = 'sky';
 
@@ -60,38 +60,11 @@ export const getFallbackAccent = () => (
 );
 
 export const loadUserAccent = async (userId) => {
-  if (!userId) return DEFAULT_ACCENT_ID;
-
-  const { data, error } = await supabase
-    .from('user_settings')
-    .select('accent_color')
-    .eq('user_id', userId)
-    .maybeSingle();
-
-  if (error) {
-    return getFallbackAccent();
-  }
-
-  return data?.accent_color || DEFAULT_ACCENT_ID;
+  return getFallbackAccent();
 };
 
 export const saveUserAccent = async (userId, accentId) => {
   localStorage.setItem(FALLBACK_KEY, accentId);
-
-  if (!userId) {
-    return { ok: false, fallback: true };
-  }
-
-  const { error } = await supabase
-    .from('user_settings')
-    .upsert(
-      {
-        user_id: userId,
-        accent_color: getAccentOption(accentId).id,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'user_id' },
-    );
-
-  return { ok: !error, fallback: !!error, error };
+  syncLocalKeyForCurrentUser(FALLBACK_KEY, accentId);
+  return { ok: true, fallback: false, error: null };
 };

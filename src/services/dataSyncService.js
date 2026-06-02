@@ -1,12 +1,6 @@
-import { listSchedules, buildCalendarData } from './calendarService';
-import { listTodos } from './todoService';
-import { listStudyRecords } from './studyRecordService';
-import { getPointBalance } from './pointService';
-import { listUserBadges } from './badgeService';
-import { getUserSettings } from './userSettingsService';
-import { disableRemoteSync, isRemoteSyncDisabled, isSchemaMissingError, notifyDataSyncError } from './supabaseService';
+import { getCurrentUserIdHint } from './supabaseService';
 
-const USER_CACHE_KEYS = [
+export const USER_CACHE_KEYS = [
   'study_records',
   'emotion_logs',
   'failure_logs',
@@ -17,13 +11,67 @@ const USER_CACHE_KEYS = [
   'user_subjects',
   'user_notifications',
   'studyfit_calendar_items',
+  'studyfit_accent_fallback',
   'owned_badges',
   'selected_badge_id',
   'ad_last_watched_at',
+  'ai_coach_chat',
 ];
 
-const saveLocal = (key, value) => {
-  localStorage.setItem(key, JSON.stringify(value));
+const USER_CACHE_NAMESPACE = 'studyfit_user_cache:';
+
+const getUserCacheKey = (userId) => `${USER_CACHE_NAMESPACE}${userId}`;
+
+const readSnapshot = (userId) => {
+  try {
+    return JSON.parse(localStorage.getItem(getUserCacheKey(userId)) || '{}');
+  } catch {
+    return {};
+  }
+};
+
+const writeSnapshot = (userId, snapshot) => {
+  localStorage.setItem(getUserCacheKey(userId), JSON.stringify(snapshot));
+};
+
+export const syncLocalKeyForCurrentUser = (key, value) => {
+  const userId = getCurrentUserIdHint();
+  if (!userId) return;
+
+  const snapshot = readSnapshot(userId);
+  snapshot[key] = JSON.stringify(value);
+  writeSnapshot(userId, snapshot);
+};
+
+export const persistCurrentCacheForUser = (userId) => {
+  if (!userId) return;
+
+  const snapshot = {};
+  USER_CACHE_KEYS.forEach((key) => {
+    const rawValue = localStorage.getItem(key);
+    if (rawValue !== null) {
+      snapshot[key] = rawValue;
+    }
+  });
+
+  writeSnapshot(userId, snapshot);
+};
+
+export const restoreUserCache = (userId) => {
+  if (!userId) return false;
+
+  const snapshot = readSnapshot(userId);
+  const entries = Object.entries(snapshot);
+
+  clearUserCache();
+
+  if (entries.length === 0) return false;
+
+  entries.forEach(([key, rawValue]) => {
+    localStorage.setItem(key, rawValue);
+  });
+
+  return true;
 };
 
 export const clearUserCache = () => {
@@ -31,51 +79,6 @@ export const clearUserCache = () => {
 };
 
 export const hydrateUserData = async (userId) => {
-  if (isRemoteSyncDisabled()) {
-    return null;
-  }
-
-  const loadOrFallback = async (loader, fallback) => {
-    try {
-      return await loader();
-    } catch (error) {
-      if (isSchemaMissingError(error)) {
-        disableRemoteSync();
-        notifyDataSyncError(error);
-        return fallback;
-      }
-      throw error;
-    }
-  };
-
-  const [settings, studyRecords, todos, schedules, pointBalance, badges] = await Promise.all([
-    loadOrFallback(() => getUserSettings(userId), null),
-    loadOrFallback(() => listStudyRecords(userId), []),
-    loadOrFallback(() => listTodos(userId), []),
-    loadOrFallback(() => listSchedules(userId), []),
-    loadOrFallback(() => getPointBalance(userId), 0),
-    loadOrFallback(() => listUserBadges(userId), []),
-  ]);
-
-  clearUserCache();
-
-  if (settings?.settings) saveLocal('app_settings', settings.settings);
-  if (settings?.subjects) saveLocal('user_subjects', settings.subjects);
-  if (settings?.notifications) saveLocal('user_notifications', settings.notifications);
-  if (settings?.selected_badge_id) saveLocal('selected_badge_id', settings.selected_badge_id);
-  if (settings?.accent_color) saveLocal('studyfit_accent_fallback', settings.accent_color);
-
-  saveLocal('study_records', studyRecords);
-  saveLocal('studyfit_calendar_items', buildCalendarData(todos, schedules));
-  saveLocal('user_points', pointBalance);
-  saveLocal('owned_badges', badges.map((badge) => badge.badge_id));
-
-  return {
-    settings,
-    studyRecords,
-    todos,
-    schedules,
-    pointBalance,
-    badges,
-  };
+  restoreUserCache(userId);
+  return null;
 };

@@ -1,6 +1,4 @@
-import { fireAndForget } from '../services/supabaseService';
-import { replaceTodosForDate } from '../services/todoService';
-import { replaceSchedulesForDate } from '../services/calendarService';
+import { syncLocalKeyForCurrentUser } from '../services/dataSyncService';
 
 const CALENDAR_KEY = 'studyfit_calendar_items';
 
@@ -22,6 +20,7 @@ export const getCalendarData = () => {
 
 export const saveCalendarData = (data) => {
   localStorage.setItem(CALENDAR_KEY, JSON.stringify(data));
+  syncLocalKeyForCurrentUser(CALENDAR_KEY, data);
 };
 
 export const getDayData = (dateKey) => {
@@ -40,8 +39,6 @@ export const saveDayData = (dateKey, dayData) => {
       schedules: dayData.schedules || [],
     },
   });
-  fireAndForget((userId) => replaceTodosForDate(userId, dateKey, dayData.todos || []));
-  fireAndForget((userId) => replaceSchedulesForDate(userId, dateKey, dayData.schedules || []));
 };
 
 export const saveTodosForDate = (dateKey, todos) => {

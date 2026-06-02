@@ -120,124 +120,196 @@ alter table public.point_balances enable row level security;
 alter table public.point_transactions enable row level security;
 alter table public.user_badges enable row level security;
 
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on public.user_settings to authenticated;
+grant select, insert, update, delete on public.study_records to authenticated;
+grant select, insert, update, delete on public.todos to authenticated;
+grant select, insert, update, delete on public.schedules to authenticated;
+grant select, insert, update, delete on public.point_balances to authenticated;
+grant select, insert, update, delete on public.point_transactions to authenticated;
+grant select, insert, update, delete on public.user_badges to authenticated;
+
+drop policy if exists "Users can select own settings" on public.user_settings;
+drop policy if exists "Users can insert own settings" on public.user_settings;
+drop policy if exists "Users can update own settings" on public.user_settings;
+drop policy if exists "Users can delete own settings" on public.user_settings;
+
 create policy "Users can select own settings"
 on public.user_settings for select
-using (auth.uid() = user_id);
+to authenticated
+using ((select auth.uid()) is not null and (select auth.uid()) = user_id);
 
 create policy "Users can insert own settings"
 on public.user_settings for insert
-with check (auth.uid() = user_id);
+to authenticated
+with check ((select auth.uid()) is not null and (select auth.uid()) = user_id);
 
 create policy "Users can update own settings"
 on public.user_settings for update
-using (auth.uid() = user_id)
-with check (auth.uid() = user_id);
+to authenticated
+using ((select auth.uid()) is not null and (select auth.uid()) = user_id)
+with check ((select auth.uid()) is not null and (select auth.uid()) = user_id);
 
 create policy "Users can delete own settings"
 on public.user_settings for delete
-using (auth.uid() = user_id);
+to authenticated
+using ((select auth.uid()) is not null and (select auth.uid()) = user_id);
+
+drop policy if exists "Users can select own study records" on public.study_records;
+drop policy if exists "Users can insert own study records" on public.study_records;
+drop policy if exists "Users can update own study records" on public.study_records;
+drop policy if exists "Users can delete own study records" on public.study_records;
 
 create policy "Users can select own study records"
 on public.study_records for select
-using (auth.uid() = user_id);
+to authenticated
+using ((select auth.uid()) is not null and (select auth.uid()) = user_id);
 
 create policy "Users can insert own study records"
 on public.study_records for insert
-with check (auth.uid() = user_id);
+to authenticated
+with check ((select auth.uid()) is not null and (select auth.uid()) = user_id);
 
 create policy "Users can update own study records"
 on public.study_records for update
-using (auth.uid() = user_id)
-with check (auth.uid() = user_id);
+to authenticated
+using ((select auth.uid()) is not null and (select auth.uid()) = user_id)
+with check ((select auth.uid()) is not null and (select auth.uid()) = user_id);
 
 create policy "Users can delete own study records"
 on public.study_records for delete
-using (auth.uid() = user_id);
+to authenticated
+using ((select auth.uid()) is not null and (select auth.uid()) = user_id);
+
+drop policy if exists "Users can select own todos" on public.todos;
+drop policy if exists "Users can insert own todos" on public.todos;
+drop policy if exists "Users can update own todos" on public.todos;
+drop policy if exists "Users can delete own todos" on public.todos;
 
 create policy "Users can select own todos"
 on public.todos for select
-using (auth.uid() = user_id);
+to authenticated
+using ((select auth.uid()) is not null and (select auth.uid()) = user_id);
 
 create policy "Users can insert own todos"
 on public.todos for insert
-with check (auth.uid() = user_id);
+to authenticated
+with check ((select auth.uid()) is not null and (select auth.uid()) = user_id);
 
 create policy "Users can update own todos"
 on public.todos for update
-using (auth.uid() = user_id)
-with check (auth.uid() = user_id);
+to authenticated
+using ((select auth.uid()) is not null and (select auth.uid()) = user_id)
+with check ((select auth.uid()) is not null and (select auth.uid()) = user_id);
 
 create policy "Users can delete own todos"
 on public.todos for delete
-using (auth.uid() = user_id);
+to authenticated
+using ((select auth.uid()) is not null and (select auth.uid()) = user_id);
+
+drop policy if exists "Users can select own schedules" on public.schedules;
+drop policy if exists "Users can insert own schedules" on public.schedules;
+drop policy if exists "Users can update own schedules" on public.schedules;
+drop policy if exists "Users can delete own schedules" on public.schedules;
 
 create policy "Users can select own schedules"
 on public.schedules for select
-using (auth.uid() = user_id);
+to authenticated
+using ((select auth.uid()) is not null and (select auth.uid()) = user_id);
 
 create policy "Users can insert own schedules"
 on public.schedules for insert
-with check (auth.uid() = user_id);
+to authenticated
+with check ((select auth.uid()) is not null and (select auth.uid()) = user_id);
 
 create policy "Users can update own schedules"
 on public.schedules for update
-using (auth.uid() = user_id)
-with check (auth.uid() = user_id);
+to authenticated
+using ((select auth.uid()) is not null and (select auth.uid()) = user_id)
+with check ((select auth.uid()) is not null and (select auth.uid()) = user_id);
 
 create policy "Users can delete own schedules"
 on public.schedules for delete
-using (auth.uid() = user_id);
+to authenticated
+using ((select auth.uid()) is not null and (select auth.uid()) = user_id);
+
+drop policy if exists "Users can select own point balance" on public.point_balances;
+drop policy if exists "Users can insert own point balance" on public.point_balances;
+drop policy if exists "Users can update own point balance" on public.point_balances;
+drop policy if exists "Users can delete own point balance" on public.point_balances;
 
 create policy "Users can select own point balance"
 on public.point_balances for select
-using (auth.uid() = user_id);
+to authenticated
+using ((select auth.uid()) is not null and (select auth.uid()) = user_id);
 
 create policy "Users can insert own point balance"
 on public.point_balances for insert
-with check (auth.uid() = user_id);
+to authenticated
+with check ((select auth.uid()) is not null and (select auth.uid()) = user_id);
 
 create policy "Users can update own point balance"
 on public.point_balances for update
-using (auth.uid() = user_id)
-with check (auth.uid() = user_id);
+to authenticated
+using ((select auth.uid()) is not null and (select auth.uid()) = user_id)
+with check ((select auth.uid()) is not null and (select auth.uid()) = user_id);
 
 create policy "Users can delete own point balance"
 on public.point_balances for delete
-using (auth.uid() = user_id);
+to authenticated
+using ((select auth.uid()) is not null and (select auth.uid()) = user_id);
+
+drop policy if exists "Users can select own point transactions" on public.point_transactions;
+drop policy if exists "Users can insert own point transactions" on public.point_transactions;
+drop policy if exists "Users can update own point transactions" on public.point_transactions;
+drop policy if exists "Users can delete own point transactions" on public.point_transactions;
 
 create policy "Users can select own point transactions"
 on public.point_transactions for select
-using (auth.uid() = user_id);
+to authenticated
+using ((select auth.uid()) is not null and (select auth.uid()) = user_id);
 
 create policy "Users can insert own point transactions"
 on public.point_transactions for insert
-with check (auth.uid() = user_id);
+to authenticated
+with check ((select auth.uid()) is not null and (select auth.uid()) = user_id);
 
 create policy "Users can update own point transactions"
 on public.point_transactions for update
-using (auth.uid() = user_id)
-with check (auth.uid() = user_id);
+to authenticated
+using ((select auth.uid()) is not null and (select auth.uid()) = user_id)
+with check ((select auth.uid()) is not null and (select auth.uid()) = user_id);
 
 create policy "Users can delete own point transactions"
 on public.point_transactions for delete
-using (auth.uid() = user_id);
+to authenticated
+using ((select auth.uid()) is not null and (select auth.uid()) = user_id);
+
+drop policy if exists "Users can select own badges" on public.user_badges;
+drop policy if exists "Users can insert own badges" on public.user_badges;
+drop policy if exists "Users can update own badges" on public.user_badges;
+drop policy if exists "Users can delete own badges" on public.user_badges;
 
 create policy "Users can select own badges"
 on public.user_badges for select
-using (auth.uid() = user_id);
+to authenticated
+using ((select auth.uid()) is not null and (select auth.uid()) = user_id);
 
 create policy "Users can insert own badges"
 on public.user_badges for insert
-with check (auth.uid() = user_id);
+to authenticated
+with check ((select auth.uid()) is not null and (select auth.uid()) = user_id);
 
 create policy "Users can update own badges"
 on public.user_badges for update
-using (auth.uid() = user_id)
-with check (auth.uid() = user_id);
+to authenticated
+using ((select auth.uid()) is not null and (select auth.uid()) = user_id)
+with check ((select auth.uid()) is not null and (select auth.uid()) = user_id);
 
 create policy "Users can delete own badges"
 on public.user_badges for delete
-using (auth.uid() = user_id);
+to authenticated
+using ((select auth.uid()) is not null and (select auth.uid()) = user_id);
 
 create index if not exists study_records_user_date_idx on public.study_records(user_id, studied_on);
 create index if not exists todos_user_date_idx on public.todos(user_id, todo_date);

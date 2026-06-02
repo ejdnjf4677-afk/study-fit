@@ -4,6 +4,7 @@ export const DATA_SYNC_ERROR_EVENT = 'studyfit:data-sync-error';
 
 let remoteSyncDisabled = false;
 let remoteSyncNoticeShown = false;
+let currentUserIdHint = null;
 
 export const isSchemaMissingError = (error) => (
   error?.code === 'PGRST205' ||
@@ -22,9 +23,17 @@ export const resetRemoteSyncState = () => {
   remoteSyncNoticeShown = false;
 };
 
+export const setCurrentUserIdHint = (userId) => {
+  currentUserIdHint = userId || null;
+};
+
+export const getCurrentUserIdHint = () => currentUserIdHint;
+
 export const getCurrentUserId = async () => {
+  if (currentUserIdHint) return currentUserIdHint;
   const { data, error } = await supabase.auth.getUser();
   if (error || !data?.user?.id) return null;
+  currentUserIdHint = data.user.id;
   return data.user.id;
 };
 
