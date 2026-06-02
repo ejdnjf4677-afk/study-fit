@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import StartScreen from './screens/StartScreen';
 import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
 import ResetPasswordScreen from './screens/ResetPasswordScreen';
@@ -10,14 +10,21 @@ import SettingsScreen from './screens/SettingsScreen';
 import StatsScreen from './screens/StatsScreen';
 import RewardsScreen from './screens/RewardScreen';
 import AICoachScreen from './screens/AICoachScreen';
-import EmotionScreen from './screens/EmotionScreen';
-import FailureScreen from './screens/FailureScreen';
 import BottomNav from './components/BottomNav';
 import { getCurrentSession } from './utils/auth';
 import { supabase } from './lib/supabase';
 import { applyAccentColor, DEFAULT_ACCENT_ID, loadUserAccent } from './utils/themeSettings';
 import { clearUserCache, hydrateUserData } from './services/dataSyncService';
-import { DATA_SYNC_ERROR_EVENT } from './services/supabaseService';
+import { DATA_SYNC_ERROR_EVENT, resetRemoteSyncState } from './services/supabaseService';
+
+const withTimeout = (promise, timeoutMs, fallbackValue = null) => (
+  Promise.race([
+    promise,
+    new Promise((resolve) => {
+      setTimeout(() => resolve(fallbackValue), timeoutMs);
+    }),
+  ])
+);
 
 const applyStoredTheme = () => {
   const storedSettings = localStorage.getItem('app_settings');
@@ -26,8 +33,12 @@ const applyStoredTheme = () => {
     return;
   }
 
-  const settings = JSON.parse(storedSettings);
-  document.body.classList.toggle('dark', settings.theme === 'dark');
+  try {
+    const settings = JSON.parse(storedSettings);
+    document.body.classList.toggle('dark', settings.theme === 'dark');
+  } catch {
+    document.body.classList.remove('dark');
+  }
 };
 
 function App() {
@@ -38,64 +49,77 @@ function App() {
   const [syncError, setSyncError] = useState('');
 
   useEffect(() => {
-    const initializeApp = async () => {
-      // Theme Check
-      applyStoredTheme();
+    const syncUserData = async (userId) => {
+      try {
+        const result = await withTimeout(hydrateUserData(userId), 5000, 'timeout');
+        if (result === 'timeout') {
+          setSyncError('데이터 불러오기가 지연되고 있어요. 앱은 기존 저장값으로 먼저 열었습니다.');
+        }
+        applyStoredTheme();
+      } catch (error) {
+        console.error(error);
+        setSyncError('데이터를 불러오지 못했어요. 네트워크 상태나 Supabase 테이블 설정을 확인해주세요.');
+      }
 
-      // Session Check
+      try {
+        const accentId = await withTimeout(loadUserAccent(userId), 3000, DEFAULT_ACCENT_ID);
+        applyAccentColor(accentId || DEFAULT_ACCENT_ID);
+      } catch (error) {
+        console.error(error);
+        applyAccentColor(DEFAULT_ACCENT_ID);
+      }
+    };
+
+    const initializeApp = async () => {
+      resetRemoteSyncState();
+      applyStoredTheme();
       localStorage.removeItem('studyfit_users');
       localStorage.removeItem('studyfit_current_user');
+
       const isResetPasswordPath = window.location.pathname === '/reset-password';
-      const session = await getCurrentSession();
+      const session = await withTimeout(getCurrentSession(), 5000, null);
+
       if (isResetPasswordPath) {
         setScreen('reset-password');
       } else if (session?.user) {
         setCurrentUser(session.user);
-        try {
-          await hydrateUserData(session.user.id);
-          applyStoredTheme();
-        } catch (error) {
-          console.error(error);
-          setSyncError('데이터를 불러오지 못했어요. 네트워크 상태를 확인해주세요.');
-        }
-        const accentId = await loadUserAccent(session.user.id);
-        applyAccentColor(accentId);
         setScreen('home');
+        syncUserData(session.user.id);
       } else {
         clearUserCache();
         setCurrentUser(null);
         applyAccentColor(DEFAULT_ACCENT_ID);
         setScreen('start');
       }
+
       setAuthLoading(false);
     };
 
-    initializeApp().catch((e) => {
-      console.error(e);
+    initializeApp().catch((error) => {
+      console.error(error);
       setAuthLoading(false);
+      setSyncError('로그인 상태를 확인하지 못했어요. 잠시 후 다시 시도해주세요.');
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       const user = session?.user || null;
       setCurrentUser(user);
+
       if (event === 'PASSWORD_RECOVERY') {
         setScreen('reset-password');
         return;
       }
+
       if (event === 'SIGNED_IN') {
         if (user?.id) {
-          try {
-            await hydrateUserData(user.id);
-            applyStoredTheme();
-          } catch (error) {
-            console.error(error);
-            setSyncError('데이터를 불러오지 못했어요. 네트워크 상태를 확인해주세요.');
-          }
-          loadUserAccent(user.id).then(applyAccentColor);
+          resetRemoteSyncState();
+          setTimeout(() => syncUserData(user.id), 0);
         }
         setScreen('home');
       }
+
       if (event === 'SIGNED_OUT') {
+        resetRemoteSyncState();
         clearUserCache();
         applyAccentColor(DEFAULT_ACCENT_ID);
         setScreen('start');
@@ -106,11 +130,11 @@ function App() {
       if (event.detail?.screen) setScreen(event.detail.screen);
     };
 
-    window.addEventListener('studyfit:navigate', handleNavigate);
     const handleDataSyncError = (event) => {
       setSyncError(event.detail?.message || '데이터 동기화에 실패했어요. 잠시 후 다시 시도해주세요.');
     };
 
+    window.addEventListener('studyfit:navigate', handleNavigate);
     window.addEventListener(DATA_SYNC_ERROR_EVENT, handleDataSyncError);
 
     return () => {

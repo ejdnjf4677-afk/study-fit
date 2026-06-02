@@ -4,6 +4,7 @@ import { listStudyRecords } from './studyRecordService';
 import { getPointBalance } from './pointService';
 import { listUserBadges } from './badgeService';
 import { getUserSettings } from './userSettingsService';
+import { disableRemoteSync, isRemoteSyncDisabled, isSchemaMissingError, notifyDataSyncError } from './supabaseService';
 
 const USER_CACHE_KEYS = [
   'study_records',
@@ -30,13 +31,30 @@ export const clearUserCache = () => {
 };
 
 export const hydrateUserData = async (userId) => {
+  if (isRemoteSyncDisabled()) {
+    return null;
+  }
+
+  const loadOrFallback = async (loader, fallback) => {
+    try {
+      return await loader();
+    } catch (error) {
+      if (isSchemaMissingError(error)) {
+        disableRemoteSync();
+        notifyDataSyncError(error);
+        return fallback;
+      }
+      throw error;
+    }
+  };
+
   const [settings, studyRecords, todos, schedules, pointBalance, badges] = await Promise.all([
-    getUserSettings(userId),
-    listStudyRecords(userId),
-    listTodos(userId),
-    listSchedules(userId),
-    getPointBalance(userId),
-    listUserBadges(userId),
+    loadOrFallback(() => getUserSettings(userId), null),
+    loadOrFallback(() => listStudyRecords(userId), []),
+    loadOrFallback(() => listTodos(userId), []),
+    loadOrFallback(() => listSchedules(userId), []),
+    loadOrFallback(() => getPointBalance(userId), 0),
+    loadOrFallback(() => listUserBadges(userId), []),
   ]);
 
   clearUserCache();
