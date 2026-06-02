@@ -7,7 +7,7 @@ const EMOTIONS = [
   { emoji: '😊', label: '좋음', value: 'good' },
   { emoji: '😐', label: '보통', value: 'neutral' },
   { emoji: '😩', label: '힘듦', value: 'tired' },
-  { emoji: '😤', label: '집중됨', value: 'focused' },
+  { emoji: '😤', label: '화남', value: 'focused' },
   { emoji: '😰', label: '불안함', value: 'anxious' },
   { emoji: '😴', label: '졸림', value: 'sleepy' },
 ];

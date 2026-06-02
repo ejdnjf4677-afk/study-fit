@@ -49,6 +49,30 @@ export const signOut = async () => {
   return { success: true };
 };
 
+export const updateNickname = async (nickname) => {
+  const trimmedNickname = nickname.trim();
+
+  if (!trimmedNickname) {
+    return { success: false, message: '닉네임을 입력해주세요.' };
+  }
+
+  const { data, error } = await supabase.auth.updateUser({
+    data: {
+      nickname: trimmedNickname,
+    },
+  });
+
+  if (error) {
+    return { success: false, message: getAuthErrorMessage(error.message) };
+  }
+
+  return {
+    success: true,
+    user: data.user,
+    message: '닉네임이 변경되었어요.',
+  };
+};
+
 export const sendPasswordResetEmail = async ({ email, redirectTo }) => {
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo,

@@ -14,6 +14,7 @@ import {
   RefreshCcw,
   Target,
   Trash2,
+  User,
 } from 'lucide-react';
 import {
   getAppSettings,
@@ -25,7 +26,7 @@ import {
   clearAllData,
 } from '../utils/storage';
 import { createCalendarItemId, getDateKey, getTodosForDate, saveTodosForDate } from '../utils/calendarStorage';
-import { signOut } from '../utils/auth';
+import { signOut, updateNickname } from '../utils/auth';
 import { ACCENT_OPTIONS, applyAccentColor, loadUserAccent, saveUserAccent } from '../utils/themeSettings';
 
 const helpItems = [
@@ -58,7 +59,7 @@ const menuButtonStyle = {
   borderRadius: 0,
 };
 
-const SettingsScreen = ({ user, onLogout }) => {
+const SettingsScreen = ({ user, onLogout, onUserUpdate }) => {
   const [settings, setSettings] = useState(getAppSettings());
   const [subjects, setSubjects] = useState(getSubjects());
   const [notifications, setNotifications] = useState(getNotifications());
@@ -72,6 +73,9 @@ const SettingsScreen = ({ user, onLogout }) => {
   const [selectedAccent, setSelectedAccent] = useState('sky');
   const [themeSaving, setThemeSaving] = useState(false);
   const [themeMessage, setThemeMessage] = useState('');
+  const [nicknameInput, setNicknameInput] = useState('');
+  const [nicknameSaving, setNicknameSaving] = useState(false);
+  const [nicknameMessage, setNicknameMessage] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -88,6 +92,11 @@ const SettingsScreen = ({ user, onLogout }) => {
       active = false;
     };
   }, [user?.id]);
+
+  useEffect(() => {
+    setNicknameInput(user?.user_metadata?.nickname || user?.email?.split('@')[0] || '');
+    setNicknameMessage('');
+  }, [user]);
 
   const handleGoalChange = (e) => {
     const newGoal = parseInt(e.target.value, 10);
@@ -155,6 +164,30 @@ const SettingsScreen = ({ user, onLogout }) => {
     if (confirmModal?.type === 'reset') {
       setConfirmModal(null);
       clearAllData();
+    }
+  };
+
+  const handleNicknameSave = async () => {
+    const trimmedNickname = nicknameInput.trim();
+
+    if (!trimmedNickname) {
+      setNicknameMessage('닉네임을 입력해주세요.');
+      return;
+    }
+
+    if (trimmedNickname === (user?.user_metadata?.nickname || user?.email?.split('@')[0] || '')) {
+      setNicknameMessage('이미 사용 중인 닉네임이에요.');
+      return;
+    }
+
+    setNicknameSaving(true);
+    setNicknameMessage('');
+    const result = await updateNickname(trimmedNickname);
+    setNicknameSaving(false);
+    setNicknameMessage(result.message);
+
+    if (result.success && result.user && onUserUpdate) {
+      onUserUpdate(result.user);
     }
   };
 
@@ -462,6 +495,42 @@ const SettingsScreen = ({ user, onLogout }) => {
             <div style={dividerStyle} />
           </>
         )}
+        <div style={{ padding: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+            <User size={20} color="var(--primary-color)" />
+            <span style={{ fontWeight: '600' }}>닉네임 변경</span>
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <input
+              type="text"
+              placeholder="닉네임 입력"
+              value={nicknameInput}
+              onChange={(e) => setNicknameInput(e.target.value)}
+              maxLength={20}
+              style={{
+                flex: 1,
+                padding: '10px 12px',
+                borderRadius: '10px',
+                border: '1px solid var(--tertiary-bg)',
+                background: 'var(--secondary-bg)',
+                color: 'var(--text-primary)',
+              }}
+            />
+            <button
+              type="button"
+              onClick={handleNicknameSave}
+              disabled={nicknameSaving}
+              className="btn-primary"
+              style={{ width: 'auto', padding: '10px 16px', opacity: nicknameSaving ? 0.7 : 1 }}
+            >
+              {nicknameSaving ? '저장 중' : '저장'}
+            </button>
+          </div>
+          <p style={{ marginTop: '10px', fontSize: '12px', color: 'var(--text-tertiary)', lineHeight: '1.5' }}>
+            {nicknameMessage || '홈 화면에 표시되는 이름을 바꿀 수 있어요.'}
+          </p>
+        </div>
+        <div style={dividerStyle} />
         <button type="button" onClick={() => setShowHelp(true)} style={menuButtonStyle}>
           <HelpCircle size={20} color="var(--primary-color)" style={{ marginRight: '12px' }} />
           <span style={{ flex: 1, fontWeight: '600' }}>사용방법</span>

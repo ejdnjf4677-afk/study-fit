@@ -174,7 +174,13 @@ function App() {
       case 'aicoach':
         return <AICoachScreen />;
       case 'settings':
-        return <SettingsScreen user={currentUser} onLogout={() => { setCurrentUser(null); setScreen('start'); }} />;
+        return (
+          <SettingsScreen
+            user={currentUser}
+            onUserUpdate={setCurrentUser}
+            onLogout={() => { setCurrentUser(null); setScreen('start'); }}
+          />
+        );
       default:
         return <HomeScreen user={currentUser} onStartStudy={() => setScreen('timer')} />;
     }
