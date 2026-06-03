@@ -1,26 +1,23 @@
 import React, { useEffect, useRef, useState } from 'react';
-import StartScreen from './screens/StartScreen';
-import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
-import ResetPasswordScreen from './screens/ResetPasswordScreen';
-import HomeScreen from './screens/HomeScreen';
-import TimerScreen from './screens/TimerScreen';
-import RecordsScreen from './screens/RecordsScreen';
-import CalendarScreen from './screens/CalendarScreen';
-import SettingsScreen from './screens/SettingsScreen';
-import StatsScreen from './screens/StatsScreen';
-import RewardsScreen from './screens/RewardScreen';
-import AICoachScreen from './screens/AICoachScreen';
 import BottomNav from './components/BottomNav';
-import { getCurrentSession } from './utils/auth';
-import { supabase } from './lib/supabase';
-import { applyAccentColor, DEFAULT_ACCENT_ID, loadUserAccent } from './utils/themeSettings';
+import CalendarScreen from './screens/CalendarScreen';
+import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
+import HomeScreen from './screens/HomeScreen';
+import RecordsScreen from './screens/RecordsScreen';
+import ResetPasswordScreen from './screens/ResetPasswordScreen';
+import RewardsScreen from './screens/RewardScreen';
+import SettingsScreen from './screens/SettingsScreen';
+import StartScreen from './screens/StartScreen';
+import StatsScreen from './screens/StatsScreen';
+import TimerScreen from './screens/TimerScreen';
+import AICoachScreen from './screens/AICoachScreen';
+import { getCurrentSession, setCurrentUserIdHint, subscribeToAuthChanges } from './services/authService';
 import {
   clearUserCache,
   hydrateUserData,
   persistCurrentCacheForUser,
-  restoreUserCache,
 } from './services/dataSyncService';
-import { setCurrentUserIdHint } from './services/supabaseService';
+import { applyAccentColor, DEFAULT_ACCENT_ID, loadUserAccent } from './utils/themeSettings';
 
 const withTimeout = (promise, timeoutMs, fallbackValue = null) => (
   Promise.race([
@@ -48,7 +45,6 @@ const applyStoredTheme = () => {
 
 function App() {
   const [screen, setScreen] = useState('start');
-  const [lastSession, setLastSession] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const currentUserRef = useRef(null);
@@ -59,12 +55,11 @@ function App() {
 
   useEffect(() => {
     const syncUserData = async (userId) => {
-      await withTimeout(hydrateUserData(userId), 500, null);
-      restoreUserCache(userId);
+      await withTimeout(hydrateUserData(userId), 5000, null);
       applyStoredTheme();
 
       try {
-        const accentId = await withTimeout(loadUserAccent(userId), 500, DEFAULT_ACCENT_ID);
+        const accentId = await withTimeout(loadUserAccent(userId), 1000, DEFAULT_ACCENT_ID);
         applyAccentColor(accentId || DEFAULT_ACCENT_ID);
       } catch (error) {
         console.error(error);
@@ -74,19 +69,16 @@ function App() {
 
     const initializeApp = async () => {
       clearUserCache();
-      localStorage.removeItem('studyfit_users');
-      localStorage.removeItem('studyfit_current_user');
-
       const isResetPasswordPath = window.location.pathname === '/reset-password';
       const session = await withTimeout(getCurrentSession(), 5000, null);
 
       if (isResetPasswordPath) {
         setScreen('reset-password');
       } else if (session?.user) {
-        setCurrentUserIdHint(session.user.id);
+        setCurrentUserIdHint(session.user.uid);
         setCurrentUser(session.user);
         setScreen('home');
-        await syncUserData(session.user.id);
+        await syncUserData(session.user.uid);
       } else {
         clearUserCache();
         setCurrentUser(null);
@@ -103,30 +95,23 @@ function App() {
       setAuthLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      const user = session?.user || null;
+    const unsubscribe = subscribeToAuthChanges((user) => {
       setCurrentUser(user);
 
-      if (event === 'PASSWORD_RECOVERY') {
-        setScreen('reset-password');
+      if (user?.uid) {
+        setCurrentUserIdHint(user.uid);
+        setTimeout(() => {
+          syncUserData(user.uid);
+        }, 0);
+        setScreen('home');
         return;
       }
 
-      if (event === 'SIGNED_IN') {
-        if (user?.id) {
-          setCurrentUserIdHint(user.id);
-          setTimeout(() => syncUserData(user.id), 0);
-        }
-        setScreen('home');
-      }
-
-      if (event === 'SIGNED_OUT') {
-        persistCurrentCacheForUser(user?.id || currentUserRef.current?.id);
-        clearUserCache();
-        setCurrentUserIdHint(null);
-        applyAccentColor(DEFAULT_ACCENT_ID);
-        setScreen('start');
-      }
+      persistCurrentCacheForUser(currentUserRef.current?.uid);
+      clearUserCache();
+      setCurrentUserIdHint(null);
+      applyAccentColor(DEFAULT_ACCENT_ID);
+      setScreen(window.location.pathname === '/reset-password' ? 'reset-password' : 'start');
     });
 
     const handleNavigate = (event) => {
@@ -138,15 +123,10 @@ function App() {
     window.addEventListener('studyfit:navigate', handleNavigate);
 
     return () => {
-      subscription.unsubscribe();
+      unsubscribe();
       window.removeEventListener('studyfit:navigate', handleNavigate);
     };
   }, []);
-
-  const handleTimerFinish = (sessionData) => {
-    setLastSession(sessionData);
-    setScreen('home');
-  };
 
   const renderScreen = () => {
     switch (screen) {
@@ -159,7 +139,7 @@ function App() {
       case 'home':
         return <HomeScreen user={currentUser} onStartStudy={() => setScreen('timer')} />;
       case 'timer':
-        return <TimerScreen onFinish={handleTimerFinish} onBack={() => setScreen('home')} />;
+        return <TimerScreen onFinish={() => setScreen('home')} onBack={() => setScreen('home')} />;
       case 'records':
         return <RecordsScreen />;
       case 'calendar':

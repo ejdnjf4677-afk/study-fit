@@ -1,4 +1,15 @@
-import { getCurrentUserIdHint } from './supabaseService';
+import { deleteDoc, getDocs, writeBatch } from 'firebase/firestore';
+import { listAiChats } from './aiChatService';
+import { listUserBadges } from './badgeService';
+import { listSchedules, buildCalendarData } from './calendarService';
+import { listEmotionRecords } from './emotionService';
+import { listFailureRecords } from './failureService';
+import { userCollection, userDocument } from './firebaseDataHelpers';
+import { getPointBalance } from './pointService';
+import { getUserSettings } from './settingsService';
+import { listStudyRecords } from './studyRecordService';
+import { listTodos } from './todoService';
+import { getCurrentUserIdHint } from './authService';
 
 export const USER_CACHE_KEYS = [
   'study_records',
@@ -32,6 +43,10 @@ const readSnapshot = (userId) => {
 
 const writeSnapshot = (userId, snapshot) => {
   localStorage.setItem(getUserCacheKey(userId), JSON.stringify(snapshot));
+};
+
+const saveLocal = (key, value) => {
+  localStorage.setItem(key, JSON.stringify(value));
 };
 
 export const syncLocalKeyForCurrentUser = (key, value) => {
@@ -78,7 +93,77 @@ export const clearUserCache = () => {
   USER_CACHE_KEYS.forEach((key) => localStorage.removeItem(key));
 };
 
+const clearCollection = async (userId, collectionName) => {
+  const collectionRef = userCollection(userId, collectionName);
+  const snapshot = await getDocs(collectionRef);
+
+  if (snapshot.empty) return;
+
+  const batch = writeBatch(collectionRef.firestore);
+  snapshot.forEach((docSnapshot) => {
+    batch.delete(docSnapshot.ref);
+  });
+  await batch.commit();
+};
+
+export const deleteAllUserData = async (userId) => {
+  if (!userId) return;
+
+  await Promise.all([
+    clearCollection(userId, 'todos'),
+    clearCollection(userId, 'schedules'),
+    clearCollection(userId, 'studyRecords'),
+    clearCollection(userId, 'emotionRecords'),
+    clearCollection(userId, 'failureRecords'),
+    clearCollection(userId, 'pointLogs'),
+    clearCollection(userId, 'badges'),
+    clearCollection(userId, 'aiChats'),
+    deleteDoc(userDocument(userId, 'settings', 'main')),
+    deleteDoc(userDocument(userId, 'points', 'main')),
+  ]);
+};
+
 export const hydrateUserData = async (userId) => {
-  restoreUserCache(userId);
-  return null;
+  if (!userId) return null;
+
+  const [settings, studyRecords, emotionRecords, failureRecords, todos, schedules, pointBalance, badges, aiChats] = await Promise.all([
+    getUserSettings(userId),
+    listStudyRecords(userId),
+    listEmotionRecords(userId),
+    listFailureRecords(userId),
+    listTodos(userId),
+    listSchedules(userId),
+    getPointBalance(userId),
+    listUserBadges(userId),
+    listAiChats(userId),
+  ]);
+
+  clearUserCache();
+
+  if (settings?.settings) saveLocal('app_settings', settings.settings);
+  if (settings?.subjects) saveLocal('user_subjects', settings.subjects);
+  if (settings?.notifications) saveLocal('user_notifications', settings.notifications);
+  if (settings?.selectedBadgeId) saveLocal('selected_badge_id', settings.selectedBadgeId);
+  if (settings?.accentColor) saveLocal('studyfit_accent_fallback', settings.accentColor);
+
+  saveLocal('study_records', studyRecords);
+  saveLocal('emotion_logs', emotionRecords);
+  saveLocal('failure_logs', failureRecords);
+  saveLocal('studyfit_calendar_items', buildCalendarData(todos, schedules));
+  saveLocal('user_points', pointBalance);
+  saveLocal('owned_badges', badges.map((badge) => badge.badge_id));
+  saveLocal('ai_coach_chat', aiChats);
+  persistCurrentCacheForUser(userId);
+
+  return {
+    settings,
+    studyRecords,
+    emotionRecords,
+    failureRecords,
+    todos,
+    schedules,
+    pointBalance,
+    badges,
+    aiChats,
+  };
 };

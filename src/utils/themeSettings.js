@@ -1,4 +1,5 @@
 import { syncLocalKeyForCurrentUser } from '../services/dataSyncService';
+import { patchUserSettings } from '../services/settingsService';
 
 export const DEFAULT_ACCENT_ID = 'sky';
 
@@ -59,12 +60,21 @@ export const getFallbackAccent = () => (
   localStorage.getItem(FALLBACK_KEY) || DEFAULT_ACCENT_ID
 );
 
-export const loadUserAccent = async (userId) => {
-  return getFallbackAccent();
-};
+export const loadUserAccent = async () => getFallbackAccent();
 
 export const saveUserAccent = async (userId, accentId) => {
   localStorage.setItem(FALLBACK_KEY, accentId);
   syncLocalKeyForCurrentUser(FALLBACK_KEY, accentId);
-  return { ok: true, fallback: false, error: null };
+
+  if (!userId) {
+    return { ok: true, fallback: true, error: null };
+  }
+
+  try {
+    await patchUserSettings(userId, { accentColor: getAccentOption(accentId).id });
+    return { ok: true, fallback: false, error: null };
+  } catch (error) {
+    console.error(error);
+    return { ok: false, fallback: true, error };
+  }
 };

@@ -1,40 +1,43 @@
-import { supabase } from '../lib/supabase';
+import { deleteDoc, getDocs, query, serverTimestamp, setDoc, where, writeBatch } from 'firebase/firestore';
+import { userCollection, userDocument } from './firebaseDataHelpers';
 
 export const listTodos = async (userId) => {
-  const { data, error } = await supabase
-    .from('todos')
-    .select('*')
-    .eq('user_id', userId)
-    .order('todo_date', { ascending: true })
-    .order('created_at', { ascending: true });
-
-  if (error) throw error;
-  return data || [];
+  const snapshot = await getDocs(userCollection(userId, 'todos'));
+  return snapshot.docs
+    .map((docSnapshot) => ({
+      id: docSnapshot.id,
+      ...docSnapshot.data(),
+    }))
+    .sort((a, b) => {
+      if (a.todo_date === b.todo_date) return String(a.created_at || '').localeCompare(String(b.created_at || ''));
+      return String(a.todo_date || '').localeCompare(String(b.todo_date || ''));
+    });
 };
 
 export const replaceTodosForDate = async (userId, dateKey, todos = []) => {
-  const { error: deleteError } = await supabase
-    .from('todos')
-    .delete()
-    .eq('user_id', userId)
-    .eq('todo_date', dateKey);
+  const collectionRef = userCollection(userId, 'todos');
+  const existingSnapshot = await getDocs(query(collectionRef, where('todo_date', '==', dateKey)));
+  const batch = writeBatch(collectionRef.firestore);
 
-  if (deleteError) throw deleteError;
+  existingSnapshot.forEach((docSnapshot) => {
+    batch.delete(docSnapshot.ref);
+  });
 
-  if (todos.length === 0) return [];
+  todos.forEach((todo) => {
+    const todoId = todo.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    batch.set(userDocument(userId, 'todos', todoId), {
+      todo_date: dateKey,
+      content: todo.text || todo.content || '',
+      completed: !!todo.completed,
+      created_at: serverTimestamp(),
+      updated_at: serverTimestamp(),
+    });
+  });
 
-  const rows = todos.map((todo) => ({
-    user_id: userId,
-    todo_date: dateKey,
-    content: todo.text || todo.content || '',
-    completed: !!todo.completed,
-  }));
+  await batch.commit();
+  return listTodos(userId);
+};
 
-  const { data, error } = await supabase
-    .from('todos')
-    .insert(rows)
-    .select();
-
-  if (error) throw error;
-  return data || [];
+export const deleteTodo = async (userId, todoId) => {
+  await deleteDoc(userDocument(userId, 'todos', todoId));
 };

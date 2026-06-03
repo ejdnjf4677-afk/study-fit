@@ -163,7 +163,7 @@ const SettingsScreen = ({ user, onLogout, onUserUpdate }) => {
 
     if (confirmModal?.type === 'reset') {
       setConfirmModal(null);
-      clearAllData();
+      await clearAllData();
     }
   };
 

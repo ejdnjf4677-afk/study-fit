@@ -1,6 +1,21 @@
+import { getCurrentUserIdHint } from '../services/authService';
+import { replaceSchedulesForDate } from '../services/calendarService';
 import { syncLocalKeyForCurrentUser } from '../services/dataSyncService';
+import { replaceTodosForDate } from '../services/todoService';
 
 const CALENDAR_KEY = 'studyfit_calendar_items';
+
+const runRemoteSync = async (task) => {
+  const userId = getCurrentUserIdHint();
+  if (!userId) return null;
+
+  try {
+    return await task(userId);
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+};
 
 export const getDateKey = (date) => {
   const d = new Date(date);
@@ -39,6 +54,9 @@ export const saveDayData = (dateKey, dayData) => {
       schedules: dayData.schedules || [],
     },
   });
+
+  runRemoteSync((userId) => replaceTodosForDate(userId, dateKey, dayData.todos || []));
+  runRemoteSync((userId) => replaceSchedulesForDate(userId, dateKey, dayData.schedules || []));
 };
 
 export const saveTodosForDate = (dateKey, todos) => {

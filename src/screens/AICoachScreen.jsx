@@ -1,17 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bot, Send, Sparkles, Brain, Heart, AlertTriangle } from 'lucide-react';
-import { getStudyRecords, getEmotionLogs, getFailureLogs, getAppSettings, getUserPoints } from '../utils/storage';
+import { getStudyRecords, getEmotionLogs, getFailureLogs, getAppSettings, getUserPoints, loadData, saveData } from '../utils/storage';
 import { calculateConcentrationScore } from '../utils/logic';
 
 const AICoachScreen = () => {
   const [question, setQuestion] = useState('');
-  const [chat, setChat] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('ai_coach_chat') || '[]');
-    } catch {
-      return [];
-    }
-  });
+  const [chat, setChat] = useState(() => loadData('ai_coach_chat', []));
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const chatEndRef = useRef(null);
@@ -25,7 +19,7 @@ const AICoachScreen = () => {
   }, [chat]);
 
   useEffect(() => {
-    localStorage.setItem('ai_coach_chat', JSON.stringify(chat.slice(-30)));
+    saveData('ai_coach_chat', chat.slice(-30));
   }, [chat]);
 
   const getStudyContext = () => {

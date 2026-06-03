@@ -1,45 +1,50 @@
-import { supabase } from '../lib/supabase';
+import { getDocs, query, serverTimestamp, where, writeBatch } from 'firebase/firestore';
+import { userCollection, userDocument } from './firebaseDataHelpers';
 
 export const listSchedules = async (userId) => {
-  const { data, error } = await supabase
-    .from('schedules')
-    .select('*')
-    .eq('user_id', userId)
-    .order('schedule_date', { ascending: true })
-    .order('all_day', { ascending: false })
-    .order('schedule_time', { ascending: true });
+  const snapshot = await getDocs(userCollection(userId, 'schedules'));
+  return snapshot.docs
+    .map((docSnapshot) => ({
+      id: docSnapshot.id,
+      ...docSnapshot.data(),
+    }))
+    .sort((a, b) => {
+      if (a.schedule_date !== b.schedule_date) {
+        return String(a.schedule_date || '').localeCompare(String(b.schedule_date || ''));
+      }
 
-  if (error) throw error;
-  return data || [];
+      if (!!a.all_day !== !!b.all_day) {
+        return a.all_day ? -1 : 1;
+      }
+
+      return String(a.schedule_time || '').localeCompare(String(b.schedule_time || ''));
+    });
 };
 
 export const replaceSchedulesForDate = async (userId, dateKey, schedules = []) => {
-  const { error: deleteError } = await supabase
-    .from('schedules')
-    .delete()
-    .eq('user_id', userId)
-    .eq('schedule_date', dateKey);
+  const collectionRef = userCollection(userId, 'schedules');
+  const existingSnapshot = await getDocs(query(collectionRef, where('schedule_date', '==', dateKey)));
+  const batch = writeBatch(collectionRef.firestore);
 
-  if (deleteError) throw deleteError;
+  existingSnapshot.forEach((docSnapshot) => {
+    batch.delete(docSnapshot.ref);
+  });
 
-  if (schedules.length === 0) return [];
+  schedules.forEach((schedule) => {
+    const scheduleId = schedule.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    batch.set(userDocument(userId, 'schedules', scheduleId), {
+      schedule_date: dateKey,
+      title: schedule.title || '',
+      schedule_time: schedule.allDay ? '' : (schedule.time || ''),
+      memo: schedule.memo || '',
+      all_day: !!schedule.allDay,
+      created_at: serverTimestamp(),
+      updated_at: serverTimestamp(),
+    });
+  });
 
-  const rows = schedules.map((schedule) => ({
-    user_id: userId,
-    schedule_date: dateKey,
-    title: schedule.title || '',
-    schedule_time: schedule.allDay ? null : (schedule.time || null),
-    memo: schedule.memo || null,
-    all_day: !!schedule.allDay,
-  }));
-
-  const { data, error } = await supabase
-    .from('schedules')
-    .insert(rows)
-    .select();
-
-  if (error) throw error;
-  return data || [];
+  await batch.commit();
+  return listSchedules(userId);
 };
 
 export const buildCalendarData = (todos = [], schedules = []) => {
