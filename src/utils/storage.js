@@ -73,6 +73,18 @@ const syncKnownKey = (key, data, previous) => {
     runRemoteSync((userId) => patchUserSettings(userId, { settings: data, theme: data?.theme || null }));
   }
 
+  if (key === 'study_streak') {
+    runRemoteSync((userId) => patchUserSettings(userId, { studyStreak: data }));
+  }
+
+  if (key === 'last_earned_points') {
+    runRemoteSync((userId) => patchUserSettings(userId, { lastEarnedPoints: data }));
+  }
+
+  if (key === 'ad_last_watched_at') {
+    runRemoteSync((userId) => patchUserSettings(userId, { adLastWatchedAt: data }));
+  }
+
   if (key === 'ai_coach_chat' && Array.isArray(data)) {
     runRemoteSync((userId) => replaceAiChats(userId, data));
   }
@@ -112,6 +124,7 @@ export const saveStudyRecord = (record) => {
     ...record,
     id: record.id || crypto.randomUUID(),
     timestamp: record.timestamp || new Date().toISOString(),
+    durationSeconds: record.durationSeconds ?? Math.max(0, Math.round((record.durationMinutes || 0) * 60)),
   };
   records.push(newRecord);
   saveData(KEYS.RECORDS, records);

@@ -148,34 +148,25 @@ const RewardScreen = () => {
 
   return (
     <div className="screen-container animate-fade-in" style={{ paddingBottom: '120px' }}>
-      <header style={{ paddingTop: '16px', marginBottom: '24px' }}>
-        <h2 style={{ fontSize: '24px', fontWeight: '800', letterSpacing: '-0.5px', marginBottom: '6px' }}>보상 상점</h2>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '15px', fontWeight: '500' }}>열심히 공부한 만큼 보상을 모아보세요!</p>
-      </header>
-
-      <div
-        className="card"
+      <header
         style={{
-          background: 'linear-gradient(135deg, rgba(var(--primary-rgb), 0.9), rgba(var(--primary-rgb), 0.68))',
-          color: 'white',
-          border: 'none',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          padding: '32px 24px',
+          paddingTop: '16px',
           marginBottom: '24px',
-          borderRadius: '24px',
-          boxShadow: '0 16px 32px rgba(var(--primary-rgb), 0.14)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          gap: '16px',
         }}
       >
-        <div style={{ background: 'rgba(255,255,255,0.2)', padding: '12px', borderRadius: '50%', marginBottom: '16px' }}>
-          <Sparkles size={28} color="white" />
+        <div>
+          <h2 style={{ fontSize: '24px', fontWeight: '800', letterSpacing: '-0.5px', marginBottom: '6px' }}>보상 상점</h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '15px', fontWeight: '500' }}>열심히 공부한 만큼 보상을 모아보세요!</p>
         </div>
-        <div style={{ fontSize: '15px', fontWeight: '600', opacity: 0.9, marginBottom: '8px' }}>나의 포인트</div>
-        <div style={{ fontSize: '40px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '10px', letterSpacing: '-1px' }}>
-          {points.toLocaleString()} <span style={{ fontSize: '24px', opacity: 0.9 }}>P</span>
+        <div className="badge badge-primary" style={{ padding: '8px 14px', borderRadius: '14px', boxShadow: '0 4px 12px rgba(var(--primary-rgb), 0.1)', whiteSpace: 'nowrap' }}>
+          <Sparkles size={16} style={{ marginRight: '4px' }} color="var(--primary-color)" />
+          <span style={{ fontSize: '14px', fontWeight: '700' }}>{points.toLocaleString()} P</span>
         </div>
-      </div>
+      </header>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
         <button

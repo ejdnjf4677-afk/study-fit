@@ -16,6 +16,7 @@ import {
   clearUserCache,
   hydrateUserData,
   persistCurrentCacheForUser,
+  restoreUserCache,
 } from './services/dataSyncService';
 import { applyAccentColor, DEFAULT_ACCENT_ID, loadUserAccent } from './utils/themeSettings';
 
@@ -48,6 +49,7 @@ function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const currentUserRef = useRef(null);
+  const authInitializedRef = useRef(false);
 
   useEffect(() => {
     currentUserRef.current = currentUser;
@@ -55,7 +57,16 @@ function App() {
 
   useEffect(() => {
     const syncUserData = async (userId) => {
-      await withTimeout(hydrateUserData(userId), 5000, null);
+      try {
+        const hydratedData = await withTimeout(hydrateUserData(userId), 5000, null);
+        if (!hydratedData) {
+          restoreUserCache(userId);
+        }
+      } catch (error) {
+        console.error(error);
+        restoreUserCache(userId);
+      }
+
       applyStoredTheme();
 
       try {
@@ -67,6 +78,26 @@ function App() {
       }
     };
 
+    const finishSignedInState = async (user) => {
+      setAuthLoading(true);
+      setCurrentUserIdHint(user.uid);
+      setCurrentUser(user);
+      await syncUserData(user.uid);
+      setScreen('home');
+      setAuthLoading(false);
+    };
+
+    const finishSignedOutState = () => {
+      persistCurrentCacheForUser(currentUserRef.current?.uid);
+      clearUserCache();
+      setCurrentUser(null);
+      setCurrentUserIdHint(null);
+      document.body.classList.remove('dark');
+      applyAccentColor(DEFAULT_ACCENT_ID);
+      setScreen(window.location.pathname === '/reset-password' ? 'reset-password' : 'start');
+      setAuthLoading(false);
+    };
+
     const initializeApp = async () => {
       clearUserCache();
       const isResetPasswordPath = window.location.pathname === '/reset-password';
@@ -74,44 +105,33 @@ function App() {
 
       if (isResetPasswordPath) {
         setScreen('reset-password');
+        setAuthLoading(false);
       } else if (session?.user) {
-        setCurrentUserIdHint(session.user.uid);
-        setCurrentUser(session.user);
-        setScreen('home');
-        await syncUserData(session.user.uid);
+        await finishSignedInState(session.user);
       } else {
-        clearUserCache();
-        setCurrentUser(null);
-        setCurrentUserIdHint(null);
-        applyAccentColor(DEFAULT_ACCENT_ID);
-        setScreen('start');
+        finishSignedOutState();
       }
 
-      setAuthLoading(false);
+      authInitializedRef.current = true;
     };
 
     initializeApp().catch((error) => {
       console.error(error);
+      authInitializedRef.current = true;
       setAuthLoading(false);
     });
 
     const unsubscribe = subscribeToAuthChanges((user) => {
-      setCurrentUser(user);
-
-      if (user?.uid) {
-        setCurrentUserIdHint(user.uid);
-        setTimeout(() => {
-          syncUserData(user.uid);
-        }, 0);
-        setScreen('home');
+      if (!authInitializedRef.current) {
         return;
       }
 
-      persistCurrentCacheForUser(currentUserRef.current?.uid);
-      clearUserCache();
-      setCurrentUserIdHint(null);
-      applyAccentColor(DEFAULT_ACCENT_ID);
-      setScreen(window.location.pathname === '/reset-password' ? 'reset-password' : 'start');
+      if (user?.uid) {
+        void finishSignedInState(user);
+        return;
+      }
+
+      finishSignedOutState();
     });
 
     const handleNavigate = (event) => {
@@ -131,7 +151,7 @@ function App() {
   const renderScreen = () => {
     switch (screen) {
       case 'start':
-        return <StartScreen onStart={(user) => { setCurrentUser(user); setScreen('home'); }} />;
+        return <StartScreen onStart={(user) => { setCurrentUser(user); }} />;
       case 'forgot-password':
         return <ForgotPasswordScreen onBack={() => setScreen('start')} />;
       case 'reset-password':
@@ -170,7 +190,7 @@ function App() {
     return (
       <div className="screen-container centered-screen">
         <div style={{ fontSize: '15px', color: 'var(--text-secondary)', fontWeight: '700' }}>
-          로그인 상태 확인 중...
+          정보를 불러오는 중...
         </div>
       </div>
     );

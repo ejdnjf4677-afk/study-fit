@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { CalendarCheck, Clock, Play, CheckCircle2, Circle, TrendingUp, Sparkles } from 'lucide-react';
+import { CalendarCheck, Clock, Play, CheckCircle2, Circle, TrendingUp, Sparkles, Plus } from 'lucide-react';
 import { getStudyRecords, getEmotionLogs, getFailureLogs, getUserPoints, getAppSettings, getStreak, loadData } from '../utils/storage';
 import { calculateConcentrationScore } from '../utils/logic';
 import { getDateKey, getTodosForDate, saveTodosForDate } from '../utils/calendarStorage';
@@ -81,9 +81,29 @@ const HomeScreen = ({ user, onStartStudy }) => {
     saveTodosForDate(todayKey, updated);
   };
 
+  const goToTodoManager = () => {
+    try {
+      sessionStorage.setItem('studyfit:focus-todo-manager', '1');
+    } catch (error) {
+      // 세션 저장이 안 되는 환경도 있으니 이동 신호만 계속 보낸다.
+    }
+
+    window.dispatchEvent(new CustomEvent('studyfit:navigate', { detail: { screen: 'settings' } }));
+    window.dispatchEvent(new CustomEvent('studyfit:focus-todo-manager'));
+  };
+
   return (
-    <div className="screen-container animate-fade-in" style={{ padding: '32px 24px', paddingBottom: '120px' }}>
-      <header style={{ marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+    <div
+      className="screen-container animate-fade-in"
+      style={{
+        padding: '24px 20px 16px',
+        paddingBottom: '110px',
+        overflow: 'hidden',
+        minHeight: '100%',
+      }}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+      <header style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '6px', letterSpacing: '-0.5px' }}>{nickname}님</h2>
           {selectedBadge && (
@@ -119,8 +139,10 @@ const HomeScreen = ({ user, onStartStudy }) => {
           background: 'linear-gradient(135deg, rgba(var(--primary-rgb), 0.9), rgba(var(--primary-rgb), 0.68))',
           color: 'white',
           borderRadius: '24px',
-          padding: '8px 24px',
+          padding: '12px 24px',
           boxShadow: '0 16px 32px rgba(var(--primary-rgb), 0.14)',
+          marginBottom: '16px',
+          minHeight: '150px',
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
@@ -143,7 +165,7 @@ const HomeScreen = ({ user, onStartStudy }) => {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
         <div className="card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '600' }}>집중도 점수</div>
@@ -169,17 +191,45 @@ const HomeScreen = ({ user, onStartStudy }) => {
         </div>
       </div>
 
-      <button className="btn-primary" onClick={onStartStudy} style={{ padding: '20px', borderRadius: '20px', fontSize: '18px', marginBottom: '24px' }}>
-        <Play size={24} fill="white" />
-        공부 시작하기
-      </button>
-
-      <div className="card" style={{ padding: '24px 20px', marginBottom: '24px' }}>
+      <div
+        className="card"
+        style={{
+          padding: '18px 20px',
+          marginBottom: '14px',
+          display: 'flex',
+          flexDirection: 'column',
+          flex: 1,
+          minHeight: '220px',
+        }}
+      >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h3 className="card-title" style={{ margin: 0 }}>오늘 To-do</h3>
+          <h3 className="card-title" style={{ margin: 0 }}>오늘 할 일</h3>
+          <button
+            type="button"
+            aria-label="오늘 할 일 관리로 이동"
+            onClick={goToTodoManager}
+            style={{
+              width: '28px',
+              height: '28px',
+              minWidth: '28px',
+              padding: 0,
+              borderRadius: '999px',
+              border: '1px solid color-mix(in srgb, var(--primary-color) 28%, transparent)',
+              background: 'color-mix(in srgb, var(--primary-color) 10%, transparent)',
+              color: 'var(--primary-color)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: 'none',
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+          >
+            <Plus size={16} strokeWidth={2.5} />
+          </button>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: '4px' }}>
           {todos.length > 0 ? todos.map((task) => (
             <div
               key={task.id}
@@ -204,11 +254,27 @@ const HomeScreen = ({ user, onStartStudy }) => {
               </span>
             </div>
           )) : (
-            <div style={{ padding: '20px 0', textAlign: 'center' }}>
-              <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', fontWeight: '500' }}>오늘 등록된 To-do가 없습니다.</p>
+            <div style={{ padding: '24px 0', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, minHeight: '140px' }}>
+              <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', fontWeight: '500' }}>오늘 할 일이 없습니다.</p>
             </div>
           )}
         </div>
+      </div>
+
+      <button
+        className="btn-primary"
+        onClick={onStartStudy}
+        style={{
+          padding: '18px',
+          borderRadius: '20px',
+          fontSize: '18px',
+          marginBottom: '0',
+          flexShrink: 0,
+        }}
+      >
+        <Play size={24} fill="white" />
+        공부 시작하기
+      </button>
       </div>
     </div>
   );

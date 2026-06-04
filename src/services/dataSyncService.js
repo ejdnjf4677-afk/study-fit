@@ -11,6 +11,25 @@ import { listStudyRecords } from './studyRecordService';
 import { listTodos } from './todoService';
 import { getCurrentUserIdHint } from './authService';
 
+const DEFAULT_APP_SETTINGS = {
+  dailyGoal: 240,
+  isPremium: false,
+  ipadMode: false,
+  ipadOrientation: 'portrait',
+  theme: 'light',
+};
+
+const DEFAULT_NOTIFICATIONS = {
+  studyStart: true,
+  breakTime: true,
+  goalReached: true,
+};
+
+const DEFAULT_STREAK = {
+  count: 0,
+  lastDate: null,
+};
+
 export const USER_CACHE_KEYS = [
   'study_records',
   'emotion_logs',
@@ -140,11 +159,20 @@ export const hydrateUserData = async (userId) => {
 
   clearUserCache();
 
-  if (settings?.settings) saveLocal('app_settings', settings.settings);
-  if (settings?.subjects) saveLocal('user_subjects', settings.subjects);
-  if (settings?.notifications) saveLocal('user_notifications', settings.notifications);
-  if (settings?.selectedBadgeId) saveLocal('selected_badge_id', settings.selectedBadgeId);
-  if (settings?.accentColor) saveLocal('studyfit_accent_fallback', settings.accentColor);
+  const hydratedSettings = {
+    ...DEFAULT_APP_SETTINGS,
+    ...(settings?.settings || {}),
+    theme: settings?.theme || settings?.settings?.theme || DEFAULT_APP_SETTINGS.theme,
+  };
+
+  saveLocal('app_settings', hydratedSettings);
+  saveLocal('user_subjects', settings?.subjects ?? []);
+  saveLocal('user_notifications', settings?.notifications ?? DEFAULT_NOTIFICATIONS);
+  saveLocal('selected_badge_id', settings?.selectedBadgeId ?? null);
+  saveLocal('studyfit_accent_fallback', settings?.accentColor ?? 'sky');
+  saveLocal('study_streak', settings?.studyStreak ?? DEFAULT_STREAK);
+  saveLocal('last_earned_points', settings?.lastEarnedPoints ?? 0);
+  saveLocal('ad_last_watched_at', settings?.adLastWatchedAt ?? null);
 
   saveLocal('study_records', studyRecords);
   saveLocal('emotion_logs', emotionRecords);

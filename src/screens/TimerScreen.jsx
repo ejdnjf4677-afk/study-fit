@@ -308,6 +308,7 @@ const TimerScreen = ({ onFinish, onBack }) => {
     const data = {
       subject: selectedSubject,
       durationMinutes,
+      durationSeconds: seconds,
       pauseCount,
       pauseMinutes: Math.round(finalPausedSeconds / 60),
       timestamp: new Date().toISOString()

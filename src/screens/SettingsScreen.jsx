@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 import {
   Bell,
   BookOpen,
@@ -30,8 +30,9 @@ import { signOut, updateNickname } from '../utils/auth';
 import { ACCENT_OPTIONS, applyAccentColor, loadUserAccent, saveUserAccent } from '../utils/themeSettings';
 
 const helpItems = [
-  { title: '홈', body: '오늘 공부 시간, 집중 점수, 오늘 To-do를 한눈에 확인해요.' },
-  { title: '타이머', body: '과목을 고르고 집중 시간을 기록해 공부 흐름을 이어가요.' },
+  { title: '홈', body: '오늘 공부 시간, 집중 점수, 오늘 할 일, 포인트, 대표 배지를 한눈에 확인해요.' },
+  { title: '타이머', body: '과목을 고르고 집중 시간을 기록해 공부 흐름을 이어가요. 공부가 끝나면 공부 시간과 멈춘 횟수, 감정/실패 기록을 바탕으로 집중도 점수와 포인트가 함께 정리돼요.' },
+  { title: '집중도 점수와 포인트', body: '집중도 점수는 타이머에서 기록한 공부 시간, 목표 달성률, 중간 멈춤 횟수, 짧은 세션이 많은지, 감정 기록과 실패 기록이 어떤지까지 함께 반영해 계산해요. 한 번에 오래 공부하고, 멈춤이 적고, 감정/실패 기록이 안정적일수록 점수가 높아져요. 포인트는 50분 이상 공부를 완료하면 30P, 감정 기록을 남기면 10P, 실패 기록을 남기면 10P, 광고를 보면 10P를 얻을 수 있어요. 또한 집중도 점수가 높거나 연속 공부일이 이어지면 추가 보상도 받을 수 있어요.' },
   { title: '기록', body: '공부, 감정, 실패 기록을 모아 나의 패턴을 파악해요.' },
   { title: '통계', body: '공부량, 감정, 실패 요인, 캘린더 히트맵을 확인해요.' },
   { title: '캘린더', body: '날짜별 To-do와 일정을 관리하고 하루를 정리해요.' },
@@ -76,6 +77,9 @@ const SettingsScreen = ({ user, onLogout, onUserUpdate }) => {
   const [nicknameInput, setNicknameInput] = useState('');
   const [nicknameSaving, setNicknameSaving] = useState(false);
   const [nicknameMessage, setNicknameMessage] = useState('');
+  const todoCardRef = useRef(null);
+  const [todoPulse, setTodoPulse] = useState(false);
+  const todoPulseTimeoutRef = useRef(null);
 
   useEffect(() => {
     let active = true;
@@ -98,6 +102,49 @@ const SettingsScreen = ({ user, onLogout, onUserUpdate }) => {
     setNicknameMessage('');
   }, [user]);
 
+  const focusTodoManager = () => {
+    if (todoPulseTimeoutRef.current) {
+      clearTimeout(todoPulseTimeoutRef.current);
+    }
+
+    setTodoPulse(false);
+    requestAnimationFrame(() => {
+      setTodoPulse(true);
+    });
+
+    todoPulseTimeoutRef.current = setTimeout(() => {
+      setTodoPulse(false);
+      todoPulseTimeoutRef.current = null;
+    }, 900);
+  };
+
+  useEffect(() => {
+    const handleFocusTodoManager = () => {
+      try {
+        sessionStorage.removeItem('studyfit:focus-todo-manager');
+      } catch (error) {
+        // 세션 저장소를 못 쓰는 환경은 무시한다.
+      }
+      focusTodoManager();
+    };
+
+    try {
+      if (sessionStorage.getItem('studyfit:focus-todo-manager')) {
+        sessionStorage.removeItem('studyfit:focus-todo-manager');
+        focusTodoManager();
+      }
+    } catch (error) {
+      // 세션 저장소를 못 쓰는 환경은 무시한다.
+    }
+
+    window.addEventListener('studyfit:focus-todo-manager', handleFocusTodoManager);
+    return () => {
+      window.removeEventListener('studyfit:focus-todo-manager', handleFocusTodoManager);
+      if (todoPulseTimeoutRef.current) {
+        clearTimeout(todoPulseTimeoutRef.current);
+      }
+    };
+  }, []);
   const handleGoalChange = (e) => {
     const newGoal = parseInt(e.target.value, 10);
     const updated = { ...settings, dailyGoal: newGoal };
@@ -276,10 +323,10 @@ const SettingsScreen = ({ user, onLogout, onUserUpdate }) => {
         </div>
       </div>
 
-      <div className="card">
+      <div className="card" ref={todoCardRef} style={{ animation: todoPulse ? 'todo-card-bounce 0.8s ease-in-out' : 'none' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
           <ListTodo size={20} color="var(--primary-color)" />
-          <h3 style={{ fontSize: '16px', fontWeight: 'bold' }}>오늘 To-do 관리</h3>
+          <h3 style={{ fontSize: '16px', fontWeight: 'bold' }}>오늘 할 일 관리</h3>
         </div>
         <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
           <input
@@ -297,7 +344,23 @@ const SettingsScreen = ({ user, onLogout, onUserUpdate }) => {
               <button
                 type="button"
                 onClick={() => toggleTodo(todo.id)}
-                style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', flex: 1, border: 'none', background: 'transparent', padding: 0, textAlign: 'left' }}
+                style={{
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  flex: 1,
+                  border: 'none',
+                  background: 'transparent',
+                  padding: 0,
+                  textAlign: 'left',
+                  boxShadow: 'none',
+                  borderRadius: 0,
+                  outline: 'none',
+                  appearance: 'none',
+                  WebkitAppearance: 'none',
+                  WebkitTapHighlightColor: 'transparent',
+                }}
               >
                 <CheckCircle2 size={20} color={todo.completed ? 'var(--primary-color)' : '#E5E5EA'} />
                 <span
@@ -558,7 +621,7 @@ const SettingsScreen = ({ user, onLogout, onUserUpdate }) => {
       </div>
 
       <div style={{ textAlign: 'center', marginTop: '24px', fontSize: '12px', color: '#C7C7CC' }}>
-        © 2026 StudyFit. All rights reserved.
+        ⓒ 2026 StudyFit. All rights reserved.
       </div>
 
       {confirmModal && (
@@ -696,3 +759,4 @@ const SettingsScreen = ({ user, onLogout, onUserUpdate }) => {
 };
 
 export default SettingsScreen;
+

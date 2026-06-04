@@ -4,9 +4,10 @@ import { timestampToIso, userCollection, userDocument } from './firebaseDataHelp
 const toRow = (record) => {
   const timestamp = record.timestamp || new Date().toISOString();
   return {
-    subject: record.subject || '공부',
+    subject: record.subject || '미분류',
     studied_on: timestamp.slice(0, 10),
     duration_minutes: record.durationMinutes || 0,
+    duration_seconds: record.durationSeconds ?? Math.max(0, Math.round((record.durationMinutes || 0) * 60)),
     focus_score: record.focusScore ?? record.concentrationScore ?? null,
     pause_count: record.pauseCount || 0,
     pause_minutes: record.pauseMinutes || 0,
@@ -27,6 +28,7 @@ export const listStudyRecords = async (userId) => {
         id: docSnapshot.id,
         subject: row.subject,
         durationMinutes: row.duration_minutes,
+        durationSeconds: row.duration_seconds ?? Math.max(0, Math.round((row.duration_minutes || 0) * 60)),
         pauseCount: row.pause_count,
         pauseMinutes: row.pause_minutes,
         focusScore: row.focus_score,
