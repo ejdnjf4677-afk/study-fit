@@ -98,7 +98,7 @@ const HomeScreen = ({ user, onStartStudy }) => {
       style={{
         padding: '24px 20px 16px',
         paddingBottom: '110px',
-        overflow: 'hidden',
+        overflowY: 'auto',
         minHeight: '100%',
       }}
     >
