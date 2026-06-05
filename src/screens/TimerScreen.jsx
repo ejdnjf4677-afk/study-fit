@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, Square, ChevronDown, ArrowLeft, Headphones, Heart, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { saveStudyRecord, saveEmotionLog, saveFailureLog, getAppSettings, getSubjects } from '../utils/storage';
 
@@ -265,8 +265,14 @@ const PostSessionModal = ({ sessionData, onDone }) => {
 };
 
 /* ── TimerScreen ── */
+const SESSION_KEY = 'studyfit_active_session';
+
 const TimerScreen = ({ onFinish, onBack }) => {
-  const [seconds, setSeconds] = useState(0);
+  // Date.now() 기반 정확한 타이머를 위한 ref
+  const startTimeRef = useRef(null);  // 마지막으로 재시작된 시각 (ms)
+  const accumulatedRef = useRef(0);   // 이전 세그먼트에서 누적된 초
+
+  const [displaySeconds, setDisplaySeconds] = useState(0);
   const [isActive, setIsActive] = useState(false);
   const [pauseCount, setPauseCount] = useState(0);
   const [pauseStartedAt, setPauseStartedAt] = useState(null);
@@ -278,40 +284,122 @@ const TimerScreen = ({ onFinish, onBack }) => {
   const [showPostModal, setShowPostModal] = useState(false);
   const [sessionData, setSessionData] = useState(null);
 
+  /* ── 앱 시작 시 이전 세션 복원 ── */
   useEffect(() => {
-    let interval = null;
-    if (isActive) {
-      interval = setInterval(() => setSeconds(s => s + 1), 1000);
+    try {
+      const raw = localStorage.getItem(SESSION_KEY);
+      if (!raw) return;
+      const session = JSON.parse(raw);
+
+      const accumulated = session.accumulatedSeconds || 0;
+      setPauseCount(session.pauseCount || 0);
+      setTotalPausedSeconds(session.totalPausedSeconds || 0);
+      if (session.selectedSubject) setSelectedSubject(session.selectedSubject);
+
+      if (session.startTime) {
+        // 앱 종료 전에 타이머가 실행 중이었음 → 경과 시간 자동 누적
+        const elapsed = Math.floor((Date.now() - session.startTime) / 1000);
+        const newAcc = accumulated + elapsed;
+        accumulatedRef.current = newAcc;
+        startTimeRef.current = Date.now();
+        setDisplaySeconds(newAcc);
+        setIsActive(true);
+        localStorage.setItem(SESSION_KEY, JSON.stringify({
+          ...session,
+          startTime: Date.now(),
+          accumulatedSeconds: newAcc,
+        }));
+      } else {
+        // 일시정지 상태로 종료됨
+        accumulatedRef.current = accumulated;
+        setDisplaySeconds(accumulated);
+        if (session.pauseStartedAt) setPauseStartedAt(session.pauseStartedAt);
+      }
+    } catch {
+      localStorage.removeItem(SESSION_KEY);
     }
+  }, []);
+
+  /* ── 화면 갱신 인터벌 (0.5초, UI 전용) ── */
+  useEffect(() => {
+    if (!isActive) return;
+    const interval = setInterval(() => {
+      if (startTimeRef.current !== null) {
+        setDisplaySeconds(
+          accumulatedRef.current + Math.floor((Date.now() - startTimeRef.current) / 1000)
+        );
+      }
+    }, 500);
     return () => clearInterval(interval);
   }, [isActive]);
 
+  /* ── 일시정지 / 재시작 ── */
   const handlePause = () => {
     if (isActive) {
-      setPauseCount(p => p + 1);
-      setPauseStartedAt(Date.now());
+      const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+      const newAcc = accumulatedRef.current + elapsed;
+      const newPauseCount = pauseCount + 1;
+      const psa = Date.now();
+
+      accumulatedRef.current = newAcc;
+      startTimeRef.current = null;
+      setDisplaySeconds(newAcc);
+      setPauseCount(newPauseCount);
+      setPauseStartedAt(psa);
       setIsActive(false);
+
+      localStorage.setItem(SESSION_KEY, JSON.stringify({
+        startTime: null,
+        accumulatedSeconds: newAcc,
+        pauseCount: newPauseCount,
+        totalPausedSeconds,
+        pauseStartedAt: psa,
+        selectedSubject,
+      }));
     } else {
+      const now = Date.now();
+      let newTps = totalPausedSeconds;
       if (pauseStartedAt) {
-        setTotalPausedSeconds(prev => prev + Math.round((Date.now() - pauseStartedAt) / 1000));
+        newTps = totalPausedSeconds + Math.round((now - pauseStartedAt) / 1000);
+        setTotalPausedSeconds(newTps);
         setPauseStartedAt(null);
       }
+      startTimeRef.current = now;
       setIsActive(true);
+
+      localStorage.setItem(SESSION_KEY, JSON.stringify({
+        startTime: now,
+        accumulatedSeconds: accumulatedRef.current,
+        pauseCount,
+        totalPausedSeconds: newTps,
+        pauseStartedAt: null,
+        selectedSubject,
+      }));
     }
   };
 
+  /* ── 정지 ── */
   const handleStop = () => {
-    setIsActive(false);
-    const activePauseSeconds = pauseStartedAt ? Math.round((Date.now() - pauseStartedAt) / 1000) : 0;
+    const finalSeconds = startTimeRef.current !== null
+      ? accumulatedRef.current + Math.floor((Date.now() - startTimeRef.current) / 1000)
+      : accumulatedRef.current;
+    const activePauseSeconds = pauseStartedAt
+      ? Math.round((Date.now() - pauseStartedAt) / 1000)
+      : 0;
     const finalPausedSeconds = totalPausedSeconds + activePauseSeconds;
-    const durationMinutes = Math.round(seconds / 60);
+
+    setIsActive(false);
+    localStorage.removeItem(SESSION_KEY);
+    startTimeRef.current = null;
+    accumulatedRef.current = 0;
+
     const data = {
       subject: selectedSubject,
-      durationMinutes,
-      durationSeconds: seconds,
+      durationMinutes: Math.round(finalSeconds / 60),
+      durationSeconds: finalSeconds,
       pauseCount,
       pauseMinutes: Math.round(finalPausedSeconds / 60),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
     setSessionData(data);
     setShowPostModal(true);
@@ -331,7 +419,7 @@ const TimerScreen = ({ onFinish, onBack }) => {
   };
 
   const dailyGoal = getAppSettings().dailyGoal;
-  const progress = Math.min(seconds / (dailyGoal * 60), 1);
+  const progress = Math.min(displaySeconds / (dailyGoal * 60), 1);
 
   return (
     <div className="screen-container animate-fade-in" style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '0 24px', backgroundColor: 'var(--bg-color)' }}>
@@ -399,7 +487,7 @@ const TimerScreen = ({ onFinish, onBack }) => {
               />
             </svg>
             <div style={{ fontSize: '56px', fontWeight: '800', letterSpacing: '-2px', color: 'var(--text-primary)', zIndex: 2 }}>
-              {formatTime(seconds)}
+              {formatTime(displaySeconds)}
             </div>
             <div style={{ color: 'var(--text-tertiary)', fontSize: '15px', fontWeight: '600', marginTop: '4px', zIndex: 2 }}>
               목표: {dailyGoal}분

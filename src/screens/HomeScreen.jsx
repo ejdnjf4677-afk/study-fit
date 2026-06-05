@@ -114,14 +114,14 @@ const HomeScreen = ({ user, onStartStudy }) => {
     <div
       className="screen-container animate-fade-in"
       style={{
-        padding: '32px 20px 16px',
+        padding: '40px 20px 16px',
         paddingBottom: '190px',
         overflowY: 'auto',
         minHeight: '100%',
       }}
     >
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-      <header style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <header style={{ marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '6px', letterSpacing: '-0.5px' }}>{nickname}님</h2>
           {selectedBadge && (
@@ -292,10 +292,11 @@ const HomeScreen = ({ user, onStartStudy }) => {
           marginBottom: '0',
           flexShrink: 0,
         }}
-      >
+        >
         <Play size={24} fill="white" />
         공부 시작하기
       </button>
+      <div aria-hidden="true" style={{ height: '280px', flexShrink: 0 }} />
       </div>
     </div>
   );

@@ -262,8 +262,8 @@ const SettingsScreen = ({ user, onLogout, onUserUpdate }) => {
   };
 
   return (
-    <div className="screen-container" style={{ paddingTop: '32px', paddingBottom: '140px' }}>
-      <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '28px' }}>설정</h2>
+    <div className="screen-container" style={{ paddingTop: '40px', paddingBottom: '140px' }}>
+      <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '32px' }}>설정</h2>
 
       <div className="card">
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
