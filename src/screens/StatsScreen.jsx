@@ -414,17 +414,39 @@ const MetricCard = ({ title, icon, range, onRangeChange, value, unit, subtitle }
   </div>
 );
 
-const ChartCard = ({ title, icon, range, onRangeChange, subtitle, children }) => (
-  <div className="card" style={{ padding: '24px', marginBottom: '20px' }}>
-    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '14px' }}>
-      <RangeTabs value={range} onChange={onRangeChange} />
+const TrendCard = ({ title, icon, subtitle, children }) => (
+  <div className="card" style={{ padding: '22px', marginBottom: '20px' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', marginBottom: '14px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+        <div style={{ background: 'var(--primary-light)', padding: '7px', borderRadius: '12px', flexShrink: 0 }}>
+          {icon}
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <h3 style={{ fontSize: '16px', fontWeight: '700', margin: 0, lineHeight: 1.2 }}>{title}</h3>
+          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>{subtitle}</p>
+        </div>
+      </div>
+      <div style={{ width: '18px', height: '18px', flexShrink: 0 }} />
     </div>
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', marginBottom: '18px' }}>
-      <div>
-        <h3 style={{ fontSize: '16px', fontWeight: '700', margin: 0 }}>{title}</h3>
+    {children}
+  </div>
+);
+
+const ChartCard = ({ title, icon, range, onRangeChange, subtitle, children }) => (
+  <div className="card" style={{ padding: '22px', marginBottom: '20px' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', marginBottom: '14px' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', minWidth: 0, flex: 1 }}>
+        <div style={{ background: 'var(--primary-light)', padding: '7px', borderRadius: '12px', flexShrink: 0 }}>
+          {icon}
+        </div>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <h3 style={{ fontSize: '16px', fontWeight: '700', margin: 0, lineHeight: 1.2, whiteSpace: 'pre-line' }}>{title}</h3>
         <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>{subtitle}</p>
       </div>
-      {icon}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', flexShrink: 0 }}>
+        <RangeTabs value={range} onChange={onRangeChange} />
+      </div>
     </div>
     {children}
   </div>
@@ -435,7 +457,6 @@ const StatsScreen = () => {
   const [totalRange, setTotalRange] = useState('today');
   const [sessionRange, setSessionRange] = useState('today');
   const [subjectRange, setSubjectRange] = useState('today');
-  const [trendRange, setTrendRange] = useState('weekly');
   const [heatmapRange, setHeatmapRange] = useState('weekly');
 
   useEffect(() => {
@@ -445,7 +466,7 @@ const StatsScreen = () => {
   const totalRecords = filterByRange(records, totalRange);
   const sessionRecords = filterByRange(records, sessionRange);
   const subjectRecords = filterByRange(records, subjectRange);
-  const trendRecords = filterByRange(records, trendRange);
+  const trendRecords = filterByRange(records, 'weekly');
   const heatmapRecords = filterByRange(records, heatmapRange);
 
   const totalMinutes = totalRecords.reduce((sum, record) => sum + (record.durationMinutes || 0), 0);
@@ -453,7 +474,7 @@ const StatsScreen = () => {
   const sessionCount = sessionRecords.length;
 
   const subjectMap = subjectRecords.reduce((acc, record) => {
-    const subject = record.subject || '미분류';
+    const subject = record.subject || '기타';
     acc[subject] = (acc[subject] || 0) + (record.durationMinutes || 0);
     return acc;
   }, {});
@@ -469,8 +490,8 @@ const StatsScreen = () => {
     pct: subjectTotal > 0 ? Math.round((item.minutes / subjectTotal) * 100) : 0,
   }));
 
-  const trendBuckets = getBuckets(trendRange);
-  const trendValues = getBucketValues(trendRecords, trendRange);
+  const trendBuckets = getBuckets('weekly');
+  const trendValues = getBucketValues(trendRecords, 'weekly');
   const maxTrendValue = Math.max(...trendValues, 1);
   const heatmap = getHeatmapData(heatmapRecords, heatmapRange);
   const maxHeatmapValue = Math.max(...heatmap.matrix.flat(), 1);
@@ -489,7 +510,7 @@ const StatsScreen = () => {
     <div className="screen-container animate-fade-in" style={{ paddingBottom: '120px' }}>
       <header style={{ paddingTop: '16px', marginBottom: '24px' }}>
         <h2 style={{ fontSize: '24px', fontWeight: '800', letterSpacing: '-0.5px' }}>통계</h2>
-        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '2px' }}>공부 흐름을 시간대별로 확인해보세요.</p>
+        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '2px' }}>공부 기록을 시간대별로 확인해보세요.</p>
       </header>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px', marginBottom: '20px' }}>
@@ -500,7 +521,7 @@ const StatsScreen = () => {
           onRangeChange={setTotalRange}
           value={formatDurationWithSeconds(totalSeconds)}
           unit=""
-          subtitle={`${totalSubtitle} 합계`}
+          subtitle={`${totalSubtitle} 누적`}
         />
         <MetricCard
           title="집중세션"
@@ -515,55 +536,48 @@ const StatsScreen = () => {
 
       <MonthlyStudyCalendar records={records} />
 
-      <ChartCard
+      <TrendCard
         title="누적시간"
-        subtitle={trendRange === 'today' ? '오늘' : trendRange === 'weekly' ? '이번 주' : '이번 달'}
-        range={trendRange}
-        onRangeChange={setTrendRange}
+        subtitle="최근 기록 흐름"
         icon={<CalendarDays size={18} color="var(--text-tertiary)" />}
       >
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', overflowX: 'auto', paddingBottom: '6px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${trendBuckets.length}, minmax(0, 1fr))`, gap: '4px', alignItems: 'end' }}>
           {trendBuckets.map((bucket, index) => {
             const value = trendValues[index] || 0;
-            const height = (value / maxTrendValue) * 120;
-            const isHighlight = trendRange === 'today'
-              ? index === new Date().getHours()
-              : trendRange === 'weekly'
-                ? index === ((new Date().getDay() + 6) % 7)
-                : index + 1 === new Date().getDate();
+            const height = (value / maxTrendValue) * 92;
+            const isHighlight = index === ((new Date().getDay() + 6) % 7);
 
             return (
-              <div key={bucket.key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', minWidth: trendRange === 'today' ? '34px' : trendRange === 'weekly' ? '36px' : '24px' }}>
+              <div key={bucket.key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px', minWidth: 0 }}>
                 <div
                   style={{
                     width: '100%',
-                    maxWidth: '20px',
                     height: `${Math.max(height, 4)}px`,
                     minHeight: '4px',
                     background: isHighlight
                       ? 'linear-gradient(180deg, rgba(var(--primary-rgb), 0.88), rgba(var(--primary-rgb), 0.58))'
                       : 'var(--tertiary-bg)',
-                    borderRadius: '8px',
+                    borderRadius: '7px',
                     position: 'relative',
                   }}
                 >
                   {isHighlight && value > 0 && (
-                    <div style={{ position: 'absolute', top: '-22px', left: '50%', transform: 'translateX(-50%)', background: 'var(--primary-color)', color: 'white', fontSize: '9px', padding: '2px 5px', borderRadius: '4px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
+                    <div style={{ position: 'absolute', top: '-18px', left: '50%', transform: 'translateX(-50%)', background: 'var(--primary-color)', color: 'white', fontSize: '8px', padding: '1px 4px', borderRadius: '4px', fontWeight: '700', whiteSpace: 'nowrap' }}>
                       {formatMinutes(value)}
                     </div>
                   )}
                 </div>
-                <span style={{ fontSize: '11px', fontWeight: isHighlight ? '700' : '500', color: isHighlight ? 'var(--primary-color)' : 'var(--text-tertiary)' }}>
+                <span style={{ fontSize: '9px', fontWeight: isHighlight ? '700' : '500', color: isHighlight ? 'var(--primary-color)' : 'var(--text-tertiary)', lineHeight: 1 }}>
                   {bucket.label}
                 </span>
               </div>
             );
           })}
         </div>
-      </ChartCard>
+      </TrendCard>
 
       <ChartCard
-        title="과목별 누적 공부시간"
+        title={"과목별\n누적 공부시간"}
         subtitle={subjectSubtitle}
         range={subjectRange}
         onRangeChange={setSubjectRange}
@@ -602,24 +616,24 @@ const StatsScreen = () => {
         onRangeChange={setHeatmapRange}
         icon={<Flame size={18} color="#F2994A" />}
       >
-        <div style={{ overflowX: 'auto' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: `44px repeat(${heatmap.labels.length}, minmax(34px, 1fr))`, gap: '4px', marginBottom: '4px' }}>
+        <div style={{ width: '100%' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: `34px repeat(${heatmap.labels.length}, minmax(0, 1fr))`, gap: '3px', marginBottom: '3px' }}>
             <div />
             {heatmap.labels.map((label) => (
-              <div key={label} style={{ textAlign: 'center', fontSize: '11px', fontWeight: '600', color: 'var(--text-tertiary)' }}>{label}</div>
+              <div key={label} style={{ textAlign: 'center', fontSize: '10px', fontWeight: '600', color: 'var(--text-tertiary)', lineHeight: 1.1 }}>{label}</div>
             ))}
           </div>
 
           {TIME_SLOTS.map((slot, slotIndex) => (
-            <div key={slot} style={{ display: 'grid', gridTemplateColumns: `44px repeat(${heatmap.labels.length}, minmax(34px, 1fr))`, gap: '4px', marginBottom: '4px' }}>
-              <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', fontWeight: '500' }}>{slot}</div>
+            <div key={slot} style={{ display: 'grid', gridTemplateColumns: `34px repeat(${heatmap.labels.length}, minmax(0, 1fr))`, gap: '3px', marginBottom: '3px' }}>
+              <div style={{ fontSize: '9px', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', fontWeight: '500', lineHeight: 1.1 }}>{slot}</div>
               {heatmap.matrix[slotIndex].map((value, valueIndex) => (
                 <div
                   key={`${slot}-${valueIndex}`}
                   title={`${heatmap.labels[valueIndex]} ${slot}: ${value}`}
                   style={{
-                    height: '28px',
-                    borderRadius: '6px',
+                    height: '22px',
+                    borderRadius: '5px',
                     background: getHeatmapColor(value),
                     transition: 'background 0.3s',
                   }}
@@ -629,11 +643,11 @@ const StatsScreen = () => {
           ))}
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', marginTop: '8px' }}>
-            <span style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>낮음</span>
+            <span style={{ fontSize: '9px', color: 'var(--text-tertiary)' }}>낮음</span>
             {[0.08, 0.18, 0.32, 0.48, 0.68].map((alpha) => (
-              <div key={alpha} style={{ width: '16px', height: '16px', borderRadius: '4px', background: `rgba(var(--primary-rgb), ${alpha})` }} />
+              <div key={alpha} style={{ width: '14px', height: '14px', borderRadius: '4px', background: `rgba(var(--primary-rgb), ${alpha})` }} />
             ))}
-            <span style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>높음</span>
+            <span style={{ fontSize: '9px', color: 'var(--text-tertiary)' }}>높음</span>
           </div>
         </div>
       </ChartCard>

@@ -5,6 +5,14 @@ import { calculateConcentrationScore } from '../utils/logic';
 import { getDateKey, getTodosForDate, saveTodosForDate } from '../utils/calendarStorage';
 
 const HomeScreen = ({ user, onStartStudy }) => {
+  const splitSeconds = (totalSeconds) => {
+    const safeSeconds = Math.max(0, Math.round(totalSeconds || 0));
+    const hours = Math.floor(safeSeconds / 3600);
+    const minutes = Math.floor((safeSeconds % 3600) / 60);
+    const seconds = safeSeconds % 60;
+    return { hours, minutes, seconds };
+  };
+
   const badgeMeta = {
     'focus-sprout': { name: '집중 새싹', emoji: '🌱' },
     'escape-3days': { name: '작심삼일 탈출', emoji: '🔥' },
@@ -21,6 +29,9 @@ const HomeScreen = ({ user, onStartStudy }) => {
   const [selectedBadge, setSelectedBadge] = useState(null);
   const [stats, setStats] = useState({
     todayMinutes: 0,
+    todayHours: 0,
+    todayDisplayMinutes: 0,
+    todayDisplaySeconds: 0,
     achievementRate: 0,
     concentrationScore: 0,
     streak: 0,
@@ -41,9 +52,13 @@ const HomeScreen = ({ user, onStartStudy }) => {
     const todayRecords = records.filter((r) => new Date(r.timestamp).toLocaleDateString() === today);
     const todayEmotions = emotions.filter((e) => new Date(e.timestamp).toLocaleDateString() === today);
     const todayFailures = failures.filter((f) => new Date(f.timestamp).toLocaleDateString() === today);
-    const todayMinutes = todayRecords.reduce((acc, r) => acc + r.durationMinutes, 0);
+    const todaySeconds = todayRecords.reduce(
+      (acc, r) => acc + (r.durationSeconds ?? Math.max(0, Math.round((r.durationMinutes || 0) * 60))),
+      0
+    );
+    const { hours, minutes, seconds } = splitSeconds(todaySeconds);
 
-    const achievementRate = Math.min(100, Math.round((todayMinutes / settings.dailyGoal) * 100));
+    const achievementRate = Math.min(100, Math.round(((hours * 60 + minutes + seconds / 60) / settings.dailyGoal) * 100));
     const totalPauses = todayRecords.reduce((acc, r) => acc + (r.pauseCount || 0), 0);
     const concentrationScore = todayRecords.length > 0
       ? calculateConcentrationScore(achievementRate, totalPauses, {
@@ -54,7 +69,10 @@ const HomeScreen = ({ user, onStartStudy }) => {
       : 0;
 
     setStats({
-      todayMinutes,
+      todayMinutes: hours * 60 + minutes,
+      todayHours: hours,
+      todayDisplayMinutes: minutes,
+      todayDisplaySeconds: seconds,
       achievementRate,
       concentrationScore,
       streak: userStreak.count,
@@ -96,8 +114,8 @@ const HomeScreen = ({ user, onStartStudy }) => {
     <div
       className="screen-container animate-fade-in"
       style={{
-        padding: '24px 20px 16px',
-        paddingBottom: '110px',
+        padding: '32px 20px 16px',
+        paddingBottom: '190px',
         overflowY: 'auto',
         minHeight: '100%',
       }}
@@ -139,22 +157,25 @@ const HomeScreen = ({ user, onStartStudy }) => {
           background: 'linear-gradient(135deg, rgba(var(--primary-rgb), 0.9), rgba(var(--primary-rgb), 0.68))',
           color: 'white',
           borderRadius: '24px',
-          padding: '12px 24px',
+          padding: '10px 22px',
           boxShadow: '0 16px 32px rgba(var(--primary-rgb), 0.14)',
           marginBottom: '16px',
-          minHeight: '150px',
+          minHeight: '144px',
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-          <span style={{ fontSize: '15px', fontWeight: '600', opacity: 0.9 }}>오늘의 공부 시간</span>
-          <div style={{ background: 'rgba(255,255,255,0.2)', padding: '8px', borderRadius: '12px' }}>
-            <Clock size={20} color="white" />
+          <span style={{ fontSize: '14px', fontWeight: '600', opacity: 0.9 }}>오늘의 공부 시간</span>
+          <div style={{ background: 'rgba(255,255,255,0.2)', padding: '7px', borderRadius: '12px' }}>
+            <Clock size={18} color="white" />
           </div>
         </div>
-        <div style={{ fontSize: '42px', fontWeight: '800', marginBottom: '12px', letterSpacing: '-1px' }}>
-          {Math.floor(stats.todayMinutes / 60)}
-          <span style={{ fontSize: '24px', fontWeight: '600', opacity: 0.9 }}>시간</span> {stats.todayMinutes % 60}
-          <span style={{ fontSize: '24px', fontWeight: '600', opacity: 0.9 }}>분</span>
+        <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: '2px 3px', fontSize: '36px', fontWeight: '800', marginBottom: '10px', letterSpacing: '-0.8px', lineHeight: 1 }}>
+          {stats.todayHours}
+          <span style={{ fontSize: '18px', fontWeight: '600', opacity: 0.9 }}>시간</span>
+          <span style={{ fontSize: '36px', fontWeight: '800' }}>{stats.todayDisplayMinutes}</span>
+          <span style={{ fontSize: '18px', fontWeight: '600', opacity: 0.9 }}>분</span>
+          <span style={{ fontSize: '36px', fontWeight: '800' }}>{stats.todayDisplaySeconds}</span>
+          <span style={{ fontSize: '18px', fontWeight: '600', opacity: 0.9 }}>초</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', fontWeight: '600', opacity: 0.9, marginBottom: '8px' }}>
           <span>일일 목표 달성률</span>
