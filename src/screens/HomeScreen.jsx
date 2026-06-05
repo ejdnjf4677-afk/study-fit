@@ -169,7 +169,7 @@ const HomeScreen = ({ user, onStartStudy }) => {
             <Clock size={18} color="white" />
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: '2px 3px', fontSize: '36px', fontWeight: '800', marginBottom: '10px', letterSpacing: '-0.8px', lineHeight: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: '3px 3px', fontSize: '36px', fontWeight: '800', marginBottom: '10px', letterSpacing: '-0.8px', lineHeight: 1 }}>
           {stats.todayHours}
           <span style={{ fontSize: '18px', fontWeight: '600', opacity: 0.9 }}>시간</span>
           <span style={{ fontSize: '36px', fontWeight: '800' }}>{stats.todayDisplayMinutes}</span>
