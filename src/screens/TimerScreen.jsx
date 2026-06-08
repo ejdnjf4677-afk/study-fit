@@ -1,6 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, Square, ChevronDown, ArrowLeft, Headphones, Heart, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { saveStudyRecord, saveEmotionLog, saveFailureLog, getAppSettings, getSubjects } from '../utils/storage';
+
+const WHITE_NOISE_OPTIONS = [
+  { id: 'none', label: '없음' },
+  { id: 'rain', label: '빗소리' },
+  { id: 'cafe', label: '카페' },
+  { id: 'library', label: '도서관' },
+];
 
 /* ── 감정 옵션 ── */
 const EMOTIONS = [
@@ -271,6 +278,13 @@ const TimerScreen = ({ onFinish, onBack }) => {
   // Date.now() 기반 정확한 타이머를 위한 ref
   const startTimeRef = useRef(null);  // 마지막으로 재시작된 시각 (ms)
   const accumulatedRef = useRef(0);   // 이전 세그먼트에서 누적된 초
+  const soundRef = useRef({
+    context: null,
+    sources: [],
+    gains: [],
+    filters: [],
+    currentPreset: 'none',
+  });
 
   const [displaySeconds, setDisplaySeconds] = useState(0);
   const [isActive, setIsActive] = useState(false);
@@ -280,7 +294,7 @@ const TimerScreen = ({ onFinish, onBack }) => {
   const [subjects] = useState(getSubjects());
   const [selectedSubject, setSelectedSubject] = useState(getSubjects()[0] || '공부');
   const [showSubjectPicker, setShowSubjectPicker] = useState(false);
-  const [noise, setNoise] = useState('없음');
+  const [noise, setNoise] = useState('none');
   const [showPostModal, setShowPostModal] = useState(false);
   const [sessionData, setSessionData] = useState(null);
 
@@ -320,6 +334,10 @@ const TimerScreen = ({ onFinish, onBack }) => {
     }
   }, []);
 
+  useEffect(() => {
+    return () => stopWhiteNoise(true);
+  }, []);
+
   /* ── 화면 갱신 인터벌 (0.5초, UI 전용) ── */
   useEffect(() => {
     if (!isActive) return;
@@ -347,6 +365,7 @@ const TimerScreen = ({ onFinish, onBack }) => {
       setPauseCount(newPauseCount);
       setPauseStartedAt(psa);
       setIsActive(false);
+      stopWhiteNoise(true);
 
       localStorage.setItem(SESSION_KEY, JSON.stringify({
         startTime: null,
@@ -366,6 +385,9 @@ const TimerScreen = ({ onFinish, onBack }) => {
       }
       startTimeRef.current = now;
       setIsActive(true);
+      if (noise !== 'none') {
+        startWhiteNoise(noise);
+      }
 
       localStorage.setItem(SESSION_KEY, JSON.stringify({
         startTime: now,
@@ -389,6 +411,7 @@ const TimerScreen = ({ onFinish, onBack }) => {
     const finalPausedSeconds = totalPausedSeconds + activePauseSeconds;
 
     setIsActive(false);
+    stopWhiteNoise(true);
     localStorage.removeItem(SESSION_KEY);
     startTimeRef.current = null;
     accumulatedRef.current = 0;
@@ -417,6 +440,196 @@ const TimerScreen = ({ onFinish, onBack }) => {
     if (h > 0) return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
     return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
   };
+
+  function createNoiseBuffer(context, seconds = 8) {
+    const buffer = context.createBuffer(1, context.sampleRate * seconds, context.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i += 1) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    return buffer;
+  }
+
+  function stopWhiteNoise(releaseContext = false) {
+    const controller = soundRef.current;
+    controller.sources.forEach((source) => {
+      try {
+        source.stop(0);
+      } catch {
+        // 이미 정지된 소스는 무시
+      }
+      try {
+        source.disconnect();
+      } catch {
+        // ignore
+      }
+    });
+    controller.filters.forEach((filter) => {
+      try {
+        filter.disconnect();
+      } catch {
+        // ignore
+      }
+    });
+    controller.gains.forEach((gain) => {
+      try {
+        gain.disconnect();
+      } catch {
+        // ignore
+      }
+    });
+    controller.sources = [];
+    controller.filters = [];
+    controller.gains = [];
+    controller.currentPreset = 'none';
+
+    if (releaseContext && controller.context) {
+      try {
+        controller.context.close();
+      } catch {
+        // ignore
+      }
+      controller.context = null;
+    }
+  }
+
+  function startWhiteNoise(nextPreset) {
+    stopWhiteNoise(true);
+    if (nextPreset === 'none') return;
+
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+
+    const context = new AudioCtx();
+    const controller = soundRef.current;
+    controller.context = context;
+    controller.currentPreset = nextPreset;
+
+    const masterGain = context.createGain();
+    masterGain.gain.value = 0.08;
+
+    const noiseSource = context.createBufferSource();
+    noiseSource.buffer = createNoiseBuffer(context, 8);
+    noiseSource.loop = true;
+
+    const nodes = [noiseSource];
+    const gains = [masterGain];
+    const filters = [];
+
+    const addBand = (type, frequency, q = 1) => {
+      const filter = context.createBiquadFilter();
+      filter.type = type;
+      filter.frequency.value = frequency;
+      filter.Q.value = q;
+
+      const gain = context.createGain();
+      gain.gain.value = 1;
+
+      filters.push(filter);
+      gains.push(gain);
+      return { filter, gain };
+    };
+
+    if (nextPreset === 'rain') {
+      const rainBody = addBand('bandpass', 1800, 0.45);
+      const rainSoftener = addBand('lowpass', 4200, 0.6);
+      const rainLow = addBand('lowpass', 900, 0.5);
+      rainLow.gain.gain.value = 0.18;
+
+      noiseSource.connect(rainBody.filter);
+      rainBody.filter.connect(rainBody.gain);
+      rainBody.gain.connect(rainSoftener.filter);
+      rainSoftener.filter.connect(rainSoftener.gain);
+      rainSoftener.gain.connect(masterGain);
+
+      noiseSource.connect(rainLow.filter);
+      rainLow.filter.connect(rainLow.gain);
+      rainLow.gain.connect(masterGain);
+
+      const rainPulse = context.createOscillator();
+      rainPulse.type = 'sine';
+      rainPulse.frequency.value = 0.12;
+      const rainPulseDepth = context.createGain();
+      rainPulseDepth.gain.value = 0.015;
+      rainPulse.connect(rainPulseDepth);
+      rainPulseDepth.connect(masterGain.gain);
+      rainPulse.start();
+
+      nodes.push(rainPulse);
+      gains.push(rainPulseDepth);
+      masterGain.gain.value = 0.1;
+    } else if (nextPreset === 'cafe') {
+      const bandpass = addBand('bandpass', 700, 0.9);
+      const lowpass = addBand('lowpass', 6000, 0.7);
+      noiseSource.connect(bandpass.filter);
+      bandpass.filter.connect(bandpass.gain);
+      bandpass.gain.connect(lowpass.filter);
+      lowpass.filter.connect(lowpass.gain);
+      lowpass.gain.connect(masterGain);
+      masterGain.gain.value = 0.12;
+
+      const hum = context.createOscillator();
+      hum.type = 'sine';
+      hum.frequency.value = 110;
+      const humGain = context.createGain();
+      humGain.gain.value = 0.02;
+      hum.connect(humGain);
+      humGain.connect(masterGain);
+      hum.start();
+      nodes.push(hum);
+      gains.push(humGain);
+    } else if (nextPreset === 'library') {
+      const highpass = addBand('highpass', 180, 0.8);
+      const lowpass = addBand('lowpass', 2500, 0.8);
+      noiseSource.connect(highpass.filter);
+      highpass.filter.connect(highpass.gain);
+      highpass.gain.connect(lowpass.filter);
+      lowpass.filter.connect(lowpass.gain);
+      lowpass.gain.connect(masterGain);
+      masterGain.gain.value = 0.07;
+
+      const fan = context.createOscillator();
+      fan.type = 'triangle';
+      fan.frequency.value = 60;
+      const fanGain = context.createGain();
+      fanGain.gain.value = 0.015;
+      fan.connect(fanGain);
+      fanGain.connect(masterGain);
+      fan.start();
+      nodes.push(fan);
+      gains.push(fanGain);
+    } else {
+      noiseSource.connect(masterGain);
+      masterGain.gain.value = 0.08;
+    }
+
+    masterGain.connect(context.destination);
+
+    if (context.state === 'suspended') {
+      context.resume().catch(() => {});
+    }
+
+    noiseSource.start();
+
+    controller.sources = nodes;
+    controller.filters = filters;
+    controller.gains = gains;
+  }
+
+  function handleNoiseSelect(nextNoise) {
+    setNoise(nextNoise);
+
+    if (nextNoise === 'none') {
+      stopWhiteNoise(true);
+      return;
+    }
+
+    if (isActive) {
+      startWhiteNoise(nextNoise);
+    } else {
+      stopWhiteNoise(true);
+    }
+  }
 
   const dailyGoal = getAppSettings().dailyGoal;
   const progress = Math.min(displaySeconds / (dailyGoal * 60), 1);
@@ -502,18 +715,18 @@ const TimerScreen = ({ onFinish, onBack }) => {
             <span style={{ fontWeight: '700', fontSize: '16px' }}>백색소음</span>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
-            {['없음', '빗소리', '카페', '도서관'].map(n => (
+            {WHITE_NOISE_OPTIONS.map(option => (
               <button
-                key={n}
-                onClick={() => setNoise(n)}
+                key={option.id}
+                onClick={() => handleNoiseSelect(option.id)}
                 style={{
                   flex: 1, padding: '12px 8px', borderRadius: '12px',
-                  border: noise === n ? '2px solid var(--primary-color)' : '2px solid transparent',
-                  background: noise === n ? 'var(--primary-light)' : 'var(--tertiary-bg)',
-                  color: noise === n ? 'var(--primary-color)' : 'var(--text-secondary)',
+                  border: noise === option.id ? '2px solid var(--primary-color)' : '2px solid transparent',
+                  background: noise === option.id ? 'var(--primary-light)' : 'var(--tertiary-bg)',
+                  color: noise === option.id ? 'var(--primary-color)' : 'var(--text-secondary)',
                   fontSize: '14px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s'
                 }}
-              >{n}</button>
+              >{option.label}</button>
             ))}
           </div>
         </div>
